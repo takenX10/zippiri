@@ -44,6 +44,7 @@ export default function Settings() {
     const [compression, setCompression] = useState(null)
     const [phonedata, setPhonedata] = useState(false);
     const [address, setAddress] = useState("");
+    const [signature, setSignature] = useState("");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [wifiSSID, setWifiSSID] = useState("");
@@ -56,6 +57,7 @@ export default function Settings() {
         "folderList": { value: folderList, setter: setFolderList },
         "phonedata": { value: phonedata, setter: setPhonedata },
         "address": { value: address, setter: setAddress },
+        "signature": { value: signature, setter: setSignature },
         "username": { value: username, setter: setUsername },
         "password": { value: password, setter: setPassword },
         "wifissid": { value: wifiSSID, setter: setWifiSSID },
@@ -65,7 +67,6 @@ export default function Settings() {
     async function loadSettings() {
         for (let s in settings) {
             let v = JSON.parse(await AsyncStorage.getItem(s))
-            console.log(s, ":", v);
             if (v != null) {
                 settings[s].setter(v)
             }
@@ -78,7 +79,6 @@ export default function Settings() {
 
     async function saveSettings() {
         for (let s in settings) {
-            console.log("save", s, settings[s].value)
             AsyncStorage.setItem(s, JSON.stringify(settings[s].value))
         }
     }
@@ -88,9 +88,7 @@ export default function Settings() {
             const response = await DocumentPicker.pickDirectory({
                 presentationStyle: 'fullScreen',
             });
-            console.log(response.uri);
             let res = await FileSystem.statDir(response.uri)
-            console.log(res);
             setFolderList((f) => [...f, response.uri])
         } catch (err) {
             console.warn(err);
@@ -156,6 +154,7 @@ export default function Settings() {
             </View>
             <ZippiriHeader title="Server" />
             <ZippiriInput item={"address"} value={address} updateText={setAddress} wifi={wifi} />
+            <ZippiriInput item={"signature"} value={signature} updateText={setSignature} wifi={wifi} />
             <ZippiriInput item={"username"} value={username} updateText={setUsername} wifi={wifi} />
             <ZippiriInput item={"password"} value={password} updateText={setPassword} wifi={wifi} />
             <ZippiriCheckbox value={phonedata} onValueChange={setPhonedata} text="Use phone data connection?" disabled={false} />

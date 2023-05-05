@@ -17,10 +17,6 @@ const DropdownComponent = ({data, setCurrentPath, label, icon}) => {
         }
         return null;
     };
-    
-    useEffect(()=>{
-        console.log(data)
-    }, [data])
 
     return (
         <View style={styles.container}>

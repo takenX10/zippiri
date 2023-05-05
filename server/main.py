@@ -41,10 +41,13 @@ def check_token():
 def get_token() -> str:
     return secrets.token_hex(16)
 
+@app.route(f"/", methods=["GET"])
+def simple_ping():
+    return ""
+
 @app.route(f"/{SIGNATURE}", methods=["GET"])
-@check_token()
 def get_signature():
-    return SIGNATURE
+    return "ok:"+SIGNATURE
 
 @app.route(f"/{SIGNATURE}/login", methods=["POST"])
 def login():
