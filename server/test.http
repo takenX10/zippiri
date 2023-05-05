@@ -1,0 +1,39 @@
+@SIGNATURE = 123948759
+@USERNAME=admin
+@PASSWORD=idk
+@AUTHTOKEN=509876963f8f5dabba3a3c0e6ec8bbf6
+
+### ping
+GET http://192.168.1.75:5000 HTTP/1.1
+Host: 192.168.1.75:5000
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/112.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Connection: keep-alive
+
+### signature
+GET http://192.168.1.75:5000/{{SIGNATURE}} HTTP/1.1
+Host: 192.168.1.75:5000
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/112.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Connection: keep-alive
+
+
+### login
+POST http://192.168.1.75:5000/{{SIGNATURE}}/login HTTP/1.1
+Host: 192.168.1.75:5000
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/112.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Connection: keep-alive
+Content-Type: application/json
+
+{"username":"{{USERNAME}}", "password":"{{PASSWORD}}"}
+
+### START
+GET http://192.168.1.75:5000/{{SIGNATURE}}/start/{{USERNAME}}/full/2023-05-05:17:02 HTTP/1.1
+Host: 192.168.1.75:5000
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/112.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Connection: keep-alive
+Cookie: AUTHTOKEN={{AUTHTOKEN}}
+Content-Type: application/json
+

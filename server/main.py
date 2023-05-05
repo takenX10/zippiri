@@ -1,7 +1,9 @@
-import re, os, secrets
+import re, os, secrets, shutil, logging
 import datetime
 from functools import wraps
 from flask import Flask, request, make_response
+
+logging.getLogger().setLevel(logging.INFO)
 
 app = Flask(__name__)
 
@@ -9,6 +11,7 @@ SIGNATURE : str = "123948759"
 USERNAME : str = "admin"
 PASSWORD : str = "idk"
 COOKIE_NAME : str = "AUTHTOKEN"
+BASEDIR : str = "sync"
 
 authorized_tokens = {}
 
@@ -62,14 +65,56 @@ def login():
     else:
         return make_response("",403)
 
-@app.route(f"/{SIGNATURE}/upload", methods = ['POST'])  
+@app.route(f"/{SIGNATURE}/start/<backup_name>/<backup_type>/<date>", methods = ['GET'])
 @check_token()
-def success():  
-    if request.method == 'POST':  
-        f = request.files['file']
-        f.save("tmp/"+f.filename)
-        return make_response("",200)
+def start_upload(backup_name, backup_type, date):
+    start_backup_dir = f"{BASEDIR}/{username}/{backup_type}/{date}"
+    os.makedirs(start_backup_dir, exist_ok=True)
+    l = os.listdir(start_backup_dir)
+    if SIGNATURE in l:
+        logging.info("directory was not empty, restarting")
+        shutil.rmtree(start_backup_dir)
+        os.makedirs(start_backup_dir)
+    with open(f"{start_backup_dir}/{SIGNATURE}", "w") as f:
+        f.write("")
+    return ""
 
+@app.route(f"/{SIGNATURE}/end/<backup_name>/<backup_type>/<date>", methods = ['GET'])
+@check_token()
+def end_upload(backup_name, backup_type, date):
+    end_backup_dir = f"{BASEDIR}/{backup_name}/{backup_type}/{date}"
+    try:
+        l = os.listdir(end_backup_dir)
+        if SIGNATURE in l:
+            os.remove(f"{end_backup_dir}/{SIGNATURE}")
+    except Exception as e:
+        logging.error(e)
+    return ""
+
+@app.route(f"/{SIGNATURE}/upload/<backup_name>/<backup_type>/<date>", methods = ['POST'])
+@check_token()
+def upload(backup_name, backup_type, date):
+    try:
+        upload_backup_dir = f"{BASEDIR}/{backup_name}/{backup_type}/{date}"
+        f = request.files['file']
+        f.save(f"{upload_backup_dir}/{f.filename}")
+        return make_response("",200)
+    except Exception as e:
+        logging.error(e)
+    return make_response("ERROR", 400)
+
+@app.route(f"/{SIGNATURE}/status/<backup_name>/<backup_type>/<date>", methods = ['GET'])
+@check_token()
+def status(backup_name, backup_type, date):
+    try:
+        upload_backup_dir = f"{BASEDIR}/{backup_name}/{backup_type}/{date}"
+        l = os.listdir(upload_backup_dir)
+        if SIGNATURE in l:
+            return make_response("NOT ENDED", 400)
+        return make_response("",200)
+    except Exception as e:
+        logging.error(e)
+    return make_response("ERROR", 400)
 
 def main():
     port = int(os.environ.get('PORT', 5000))
