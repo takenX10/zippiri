@@ -1,4 +1,4 @@
-import re, os, secrets, shutil, logging
+import re, os, secrets, shutil, logging, base64
 import datetime
 from functools import wraps
 from flask import Flask, request, make_response
@@ -28,7 +28,8 @@ def check_token():
     def _check_token(f):
         @wraps(f)
         def __check_token(*args, **kwargs):
-            token = request.cookies.get(COOKIE_NAME)
+            token = request.headers.get("Authorization").split(" ")[1]
+            print(token)
             if valid_token(token):
                 if checkdate(authorized_tokens[token]):
                     return f(*args, **kwargs)
@@ -61,14 +62,14 @@ def login():
         authorized_tokens[t] = datetime.datetime.now()
         res = make_response("", 200)
         res.set_cookie(COOKIE_NAME, t)
-        return res
+        return make_response(t, 200)
     else:
         return make_response("",403)
 
 @app.route(f"/{SIGNATURE}/start/<backup_name>/<backup_type>/<date>", methods = ['GET'])
 @check_token()
 def start_upload(backup_name, backup_type, date):
-    start_backup_dir = f"{BASEDIR}/{username}/{backup_type}/{date}"
+    start_backup_dir = f"{BASEDIR}/{backup_name}/{backup_type}/{date}"
     os.makedirs(start_backup_dir, exist_ok=True)
     l = os.listdir(start_backup_dir)
     if SIGNATURE in l:
@@ -96,8 +97,13 @@ def end_upload(backup_name, backup_type, date):
 def upload(backup_name, backup_type, date):
     try:
         upload_backup_dir = f"{BASEDIR}/{backup_name}/{backup_type}/{date}"
-        f = request.files['file']
-        f.save(f"{upload_backup_dir}/{f.filename}")
+        file_base64 : str = request.json.get("file")
+        filename : str = request.json.get("filename")
+        if file_base64 == None or filename == None or file_base64=="" or filename == "":
+            return make_response("WRONG PARAMETERS", 400)
+        decoded = base64.b64decode(file_base64)
+        with open(f"{upload_backup_dir}/{filename}", 'wb') as f:
+            f.write(decoded)
         return make_response("",200)
     except Exception as e:
         logging.error(e)

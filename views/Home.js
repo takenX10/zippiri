@@ -3,6 +3,7 @@ import { View, Text, ToastAndroid, ScrollView, Button } from 'react-native';
 import DropdownComponent from '../components/DropdownComponent.native';
 import ItemCard from '../components/ItemCard.native';
 import { FileSystem } from 'react-native-file-access';
+import { upload_full } from '../components/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -78,9 +79,11 @@ export default function Home() {
     // 0: server out of sync
     // 1: server in sync
     async function getSyncStatus() {
+        // TODO: IMPLEMENT
         if(currentPath == null){
             return -1;
         }
+        return 0
         
 
     }
@@ -127,8 +130,17 @@ export default function Home() {
                                 return
                             }
                             let s = await getSyncStatus()
-                            if(!s){
-                                ToastAndroid.show("The server is out of sync, syncing...", ToastAndroid.SHORT)
+                            switch(s){
+                                case -1:
+                                    ToastAndroid.show("Folder not selected", ToastAndroid.SHORT)
+                                    break;
+                                case 0:
+                                    ToastAndroid.show("The server is out of sync, syncing...", ToastAndroid.SHORT)
+                                    upload_full(currentPath.path)
+                                    break;
+                                case 1:
+                                    ToastAndroid.show("The server is in sync", ToastAndroid.SHORT)
+                                    break;
                             }
                         }}
                     />
