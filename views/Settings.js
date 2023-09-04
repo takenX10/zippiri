@@ -91,7 +91,7 @@ export default function Settings() {
             let res = await FileSystem.statDir(response.uri)
             setFolderList((f) => [...f, response.uri])
         } catch (err) {
-            console.warn(err);
+            console.log(err);
         }
     }, []);
 
