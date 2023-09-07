@@ -3,117 +3,103 @@ import { View, Text, ToastAndroid, ScrollView, Button } from 'react-native';
 import { FileSystem } from 'react-native-file-access';
 import DropdownComponent from '../components/DropdownComponent.native';
 import ItemCardList from '../components/ItemCardList.native';
-import { getPathList } from '../components/utils';
+import { CardItem, getPathList } from '../components/utils';
 import BackupLogic from '../components/backup/backup';
 import FileHandler from '../components/backup/FileHandler';
-
-async function getItems(path:string) {
-    try {
-        let res = await FileSystem.statDir(path)
-        return res.map((v) => { return { path: v.path, filename: v.filename, type: v.type, status: "TODO" } })
-    } catch (e) {
-        console.log(e)
-    }
-    return []
-}
-
-interface Item {
-    path:string;
-    filename:string;
-    type:string;
-    status:string;
-    depth?:number;
-}
+import { useIsFocused } from '@react-navigation/native';
 
 export default function Home() {
     const BL = new BackupLogic()
     const fh = new FileHandler()
-    const [itemList, setItemList] = useState([] as Item[]);
+    const isFocused = useIsFocused()
+    const [itemList, setItemList] = useState([] as CardItem[]);
     const [pathList, setPathList] = useState([] as string[]);
-    const [cacheLabel, setCacheLabel] = useState("Clear cache")
-    const [serverStatus, setServerStatus] = useState(false)
-    const [currentPath, setCurrentPath] = useState(null as Item|null);
-    const [syncStatus, setSyncStatus] = useState('Checking server connection');
+    const [cacheLabel, setCacheLabel] = useState("Clear cache (0B)")
+    const [currentPath, setCurrentPath] = useState(null as CardItem | null);
+    const [syncStatus, setSyncStatus] = useState('Loading current app state');
 
-    useEffect(() => {
-        init()
-    }, [])
+    useEffect(() => {init()}, [])
+    useEffect(() => {if (isFocused) init()}, [isFocused])
+    useEffect(() => {updateItemList(); if(currentPath && currentPath.filename=="") init()}, [currentPath])
 
-    useEffect(() => {
-        ToastAndroid.show(serverStatus ? "Server connected" : "The server is not connected", ToastAndroid.SHORT)
-        if (serverStatus) {
-            getSyncStatus()
+    async function syncFolder() {
+        try{
+            if(!currentPath) throw new Error("Select a folder")
+            if(!await checkServer()) throw new Error("Server not connected")
+            if(await checkSync()) throw new Error("Server already in sync")
+            if(!await BL.startBackup(currentPath.basepath, "", "full")) throw new Error("Something went wrong...")
+            init()
+        }catch(err){
+            console.log(err)
+            if(err instanceof Error){
+                ToastAndroid.show(err.message, ToastAndroid.SHORT)
+            }
         }
-    }, [serverStatus])
+    }
 
+    async function checkServer(): Promise<boolean> {
+        const srv = await BL.getServerInteractor()
+        if (!srv) return false
+        return await srv.checkServer();
+    }
 
-    useEffect(() => {
-        updateItemList()
-    }, [currentPath])
+    async function checkSync() {
+        if (!currentPath) throw new Error("Folder not selected")
+        if (!await checkServer()) throw new Error("The server is not connected")
+        const status = await BL.getSyncStatus(currentPath.basepath)
+        return status.differential || status.full || status.incremental
+    }
+
+    async function clearCache(){
+        await fh.clearCache()
+        ToastAndroid.show("Cache cleared", ToastAndroid.SHORT)
+        setCacheLabel(`Clear cache (${await fh.getCacheSize()})`)
+    }
 
 
     async function init() {
-        getPathList(setPathList)
-        const srv = await BL.getServerInteractor()
-        if(!srv){
-            setServerStatus(false);
-            setSyncStatus("Unable to connect to server")
-            return
-        }
-        const server = await srv.checkServer()
-        if (server) {
-            setSyncStatus("Server connected, checking sync")
-            setServerStatus(true);
+        try{
+            setCacheLabel(`Clear cache (${await fh.getCacheSize()})`)
+            getPathList(setPathList)
+            if(!currentPath) throw new Error("Select a folder")
+            if(!await checkServer()) throw new Error("Server is not connected")
+            if(!await checkSync()) throw new Error("Backups are not updated")
+            setSyncStatus("Everything is up to date")
+            ToastAndroid.show("Everything is up to date", ToastAndroid.SHORT)
+        }catch(err){
+            console.log(err)
+            if(err instanceof Error){
+                ToastAndroid.show(err.message, ToastAndroid.SHORT)
+                setSyncStatus(err.message)
+            }
         }
     }
 
     async function updateItemList() {
-        if (currentPath != null && currentPath?.depth != null && currentPath.path != null) {
-            let newitems = await getItems(currentPath['path']);
-            const backItem = {
-                path: currentPath['path'].split("/").slice(0, -1).join('/'),
-                filename: "..",
-                type: "directory",
-                status: "TODO"
+        if(
+            !currentPath ||
+            !await FileSystem.exists(currentPath.currentpath) || 
+            !await FileSystem.isDir(currentPath.currentpath)){
+                return setItemList([])
+        }
+        const newitems = (await FileSystem.statDir(currentPath.currentpath)).map((f):CardItem=>{
+            return {
+                basepath: currentPath.basepath,
+                currentpath: f.path,
+                filename: f.filename,
+                type: f.type,
+                depth: currentPath.depth+1,
             }
-            let finalList = (currentPath['depth'] > 0 ? [backItem] : []);
-            setItemList([...finalList, ...newitems])
+        });
+        const backItem:CardItem = {
+            basepath: currentPath.basepath,
+            currentpath: currentPath.currentpath.split("/").slice(0, -1).join('/'),
+            filename: "..",
+            type: "directory",
+            depth: currentPath.depth-1
         }
-    }
-
-    // -1: no files to check
-    // 0: server out of sync
-    // 1: server in sync
-    async function getSyncStatus() {
-        // TODO: IMPLEMENT
-        if (currentPath == null) {
-            return -1;
-        }
-        return 0
-
-
-    }
-
-    async function checkSync() {
-        if (!serverStatus) {
-            ToastAndroid.show("The server is not connected", ToastAndroid.SHORT)
-            return
-        }
-        let s = await getSyncStatus()
-        switch (s) {
-            case -1:
-                ToastAndroid.show("Folder not selected", ToastAndroid.SHORT)
-                break;
-            case 0:
-                if(!currentPath) return ToastAndroid.show("Folder not selected", ToastAndroid.SHORT)
-                ToastAndroid.show("The server is out of sync, syncing...", ToastAndroid.SHORT)
-                const res = await BL.upload_full(currentPath.path)
-                console.log("Upload was "+(res?"successfull":"BROKEN"))
-                break;
-            case 1:
-                ToastAndroid.show("The server is in sync", ToastAndroid.SHORT)
-                break;
-        }
+        const finalList = (currentPath.depth > 0 ? [backItem] : []) as CardItem[];
+        setItemList([...finalList, ...newitems])
     }
 
     return (
@@ -122,8 +108,8 @@ export default function Home() {
         }}>
             <DropdownComponent
                 data={pathList.map(p => { return { label: decodeURIComponent(p.split("tree/")[1]), value: p } })}
-                setCurrentPath={(p:string) => {
-                    setCurrentPath({ depth: 0, path: p, filename:"", type:"", status:"" })
+                setCurrentPath={(p: string) => {
+                    setCurrentPath({ depth: 0, basepath: p, currentpath:p, filename: "", type: "" })
                 }}
                 label="folder"
                 icon="folder"
@@ -131,47 +117,29 @@ export default function Home() {
             <View style={{ flex: 1, justifyContent: 'space-evenly', alignItems: 'stretch', flexDirection: 'row', marginTop: 10 }}>
                 <View style={{ flex: 1, marginRight: 10 }}>
                     <Button
-                        title="sync"
+                        title="Backup"
                         color="#841584"
-                        accessibilityLabel="Sync the current folder"
-                        onPress={checkSync}
+                        accessibilityLabel="Backup the current folder"
+                        onPress={syncFolder}
                     />
                 </View>
                 <View style={{ flex: 1 }}>
                     <Button
-                        title="check server"
+                        title="Check status"
                         color="#841584"
                         accessibilityLabel="Check the current folder status"
-                        onPress={async () => {
-                            const srv = await BL.getServerInteractor()
-                            if(!srv){
-                                setSyncStatus("Unable to get server informations")
-                                return
-                            }
-                            const s = await srv.checkServer();
-                            ToastAndroid.show(s ? "Server connected" : "The server is not connected", ToastAndroid.SHORT)
-                            if (s != serverStatus) {
-                                setSyncStatus(s ? "Server connected" : "The server is not connected")
-                            }
-                            setServerStatus(s)
-                        }}
+                        onPress={init}
                     />
                 </View>
             </View>
-            <View style={{ flex: 1, marginTop:5 }}>
-                    <Button
-                        title={cacheLabel}
-                        color="#841584"
-                        accessibilityLabel={cacheLabel}
-                        disabled={cacheLabel=="Clearing..."}
-                        onPress={async () => {
-                            setCacheLabel("Clearing...")
-                            await fh.clearCache()
-                            ToastAndroid.show("Cache cleared", ToastAndroid.SHORT)
-                            setCacheLabel("Clear cache")
-                        }}
-                    />
-                </View>
+            <View style={{ flex: 1, marginTop: 5 }}>
+                <Button
+                    title={cacheLabel}
+                    color="#841584"
+                    accessibilityLabel={cacheLabel}
+                    onPress={clearCache}
+                />
+            </View>
             <Text style={{ marginTop: 10, fontSize: 20, textAlign: 'center' }}>{syncStatus}</Text>
             <ItemCardList items={itemList} currentPath={currentPath} setCurrentPath={setCurrentPath} />
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Button, StyleSheet } from "react-native";
+import { View, Text, Button, StyleSheet, ToastAndroid } from "react-native";
 import DropdownComponent from '../components/DropdownComponent.native';
 import ZippiriInput from '../components/ZippiriInput';
 import ZippiriHeader from '../components/ZippiriHeader';
@@ -81,6 +81,7 @@ export default function Settings() {
         for (let s in settings) {
             AsyncStorage.setItem(s, JSON.stringify(settings[s].value))
         }
+        ToastAndroid.show("Settings saved", ToastAndroid.SHORT)
     }
 
     const handleDocumentSelection = useCallback(async () => {
