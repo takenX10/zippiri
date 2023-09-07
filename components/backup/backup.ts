@@ -69,7 +69,7 @@ export default class BackupLogic {
             if(!stats) throw new Error("Unable to generate stats of path")
             for(const type of ["full","differential","incremental"]){
                 const latestFile = await fh.getLatestFile(`${Dirs.DocumentDir}/${backupName}/${type}`)
-                if(latestFile!=""){
+                if(latestFile){
                     const parsed = JSON.parse(latestFile) as SavedStats
                     if(fh.statsDelta(parsed.currentList, stats).length || fh.statsDelta(stats, parsed.currentList)){
                         switch(type){
@@ -116,7 +116,7 @@ export default class BackupLogic {
             const latestFile = sourceFolder==""?"":await fh.getLatestFile(`${startingPath}/${sourceFolder}`)
             let addedList = [] as Stats[]
             let removedList = [] as Stats[]
-            if(latestFile == ""){
+            if(!latestFile){
                 addedList = currentFiles
             }else{
                 const oldFilesList = JSON.parse(latestFile) as SavedStats

@@ -4,13 +4,13 @@ import { Stats, StatsDictionary, compareStats } from "../utils";
 export default class FileHandler {
     constructor() { }
 
-    async folderTree(path:string):Promise<FileStat[]>{
-        if(!await FileSystem.exists(path) || !await FileSystem.isDir(path)) return [] as FileStat[]
-        let filesList : FileStat[]= [];
-        for (const f of await FileSystem.statDir(path)){
-            if(f.type=='directory'){
+    async folderTree(path: string): Promise<FileStat[]> {
+        if (!await FileSystem.exists(path) || !await FileSystem.isDir(path)) return [] as FileStat[]
+        let filesList: FileStat[] = [];
+        for (const f of await FileSystem.statDir(path)) {
+            if (f.type == 'directory') {
                 filesList = [...filesList, ...(await this.folderTree(f.path))]
-            }else{
+            } else {
                 filesList.push(f)
             }
         }
@@ -19,8 +19,8 @@ export default class FileHandler {
 
     async findClearableCacheFiles() {
         const cachableList: string[] = []
-        for (const base of await FileSystem.statDir(Dirs.DocumentDir)){
-            for (const type of ["incremental", "full"]){
+        for (const base of await FileSystem.statDir(Dirs.DocumentDir)) {
+            for (const type of ["incremental", "full", "differential"]) {
                 if (await FileSystem.exists(`${base.path}/${type}`)) {
                     const ls = await FileSystem.statDir(`${base.path}/${type}`)
                     const latest = (await this.findLatestFile(`${base.path}/${type}`)) || ""
@@ -28,9 +28,6 @@ export default class FileHandler {
                         if (f.path != latest) cachableList.push(f.path)
                     }
                 }
-            }
-            if (await FileSystem.exists(base.path + "/differential")) {
-                cachableList.push(base.path + "/differential")
             }
         }
         return cachableList
@@ -76,7 +73,7 @@ export default class FileHandler {
         return size
     }
 
-    async createLocalPath(name:string, type: string, date: string) {
+    async createLocalPath(name: string, type: string, date: string) {
         const basepath = `${Dirs.DocumentDir}/${name}`
         if (!(await FileSystem.exists(`${basepath}`))) {
             await FileSystem.mkdir(`${basepath}`)
@@ -91,26 +88,23 @@ export default class FileHandler {
     }
 
     async findLatestFile(path: string) {
+        if (!await FileSystem.exists(path) || !await FileSystem.isDir(path)) return null
         const ls = await FileSystem.statDir(path)
-        let max: FileStat = {
-            filename: "",
-            lastModified: 0,
-            path: "",
-            size: 0,
-            type: 'file'
-        }
+        let max = 0
+        let maxpath = "";
         for (let f of ls) {
-            if (f.type != "directory" && f.lastModified > max.lastModified) {
-                max = f
+            if (f.type != "directory" && f.lastModified > max) {
+                max = f.lastModified
+                maxpath = f.path
             }
         }
-        if (max.lastModified == 0) return null
-        return max.path
+        if(max==0 || maxpath=="") return null
+        return maxpath
     }
 
     async getLatestFile(path: string) {
         const p = await this.findLatestFile(path)
-        if (!p) return ""
+        if (!p) return null
         return await FileSystem.readFile(p)
     }
     async delete_folder(path: string, onlyContent = false) {
@@ -140,12 +134,12 @@ export default class FileHandler {
     }
     async generate_stats(path: string) {
         const ls = await this.folderTree(path)
-        let stats: Stats[]= []
+        let stats: Stats[] = []
         for (let i in ls) {
-            stats.push({ 
+            stats.push({
                 value: await FileSystem.hash(ls[i].path, 'SHA-256'),
                 keyName: i.toString(),
-                type: ls[i].type, 
+                type: ls[i].type,
                 path: ls[i].path,
                 filename: ls[i].filename,
                 lastModified: ls[i].lastModified,
@@ -159,10 +153,10 @@ export default class FileHandler {
     }
 
     // returns all stats that are in newStat & not in initialStat
-    statsDelta(initialStat: Stats[], newStat:Stats[]):Stats[]{
-        let finalList= [] as Stats[]
-        for(const a of newStat){
-            if(!initialStat.filter((b:Stats)=>compareStats(a,b)).length){
+    statsDelta(initialStat: Stats[], newStat: Stats[]): Stats[] {
+        let finalList = [] as Stats[]
+        for (const a of newStat) {
+            if (!initialStat.filter((b: Stats) => compareStats(a, b)).length) {
                 finalList.push(a)
             }
         }
@@ -170,9 +164,9 @@ export default class FileHandler {
     }
 
     async moveStat(stats: Stats[], outputpath: string) {
-        if(!await FileSystem.exists(outputpath) || !await FileSystem.isDir(outputpath))
+        if (!await FileSystem.exists(outputpath) || !await FileSystem.isDir(outputpath))
             await FileSystem.mkdir(outputpath)
-        for(const s of stats){
+        for (const s of stats) {
             await FileSystem.cp(s.path, `${outputpath}/${s.keyName}`)
         }
     }

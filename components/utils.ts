@@ -1,5 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Dispatch, SetStateAction } from "react";
+import FileHandler from "./backup/FileHandler";
+import { Dirs, FileSystem, Util } from "react-native-file-access";
+import BackupLogic from "./backup/backup";
 
 const validImageExtensions = ["jpg", "jpeg", "png"]
 
@@ -41,6 +44,11 @@ export interface BackupStatus {
     incremental: boolean;
 }
 
+export interface Status {
+    success: boolean;
+    message: string;
+}
+
 export interface CardItem {
     basepath: string;
     currentpath: string;
@@ -55,4 +63,46 @@ function compareStats(a:Stats,b:Stats):boolean{
 }
 
 
-export {getPathList, validImageExtensions, compareStats }
+async function getStorage<Type>(key: string, defval: Type): Promise<Type> {
+    const storage = await AsyncStorage.getItem(key)
+    let value = defval
+    if (storage) value = JSON.parse(storage) as Type
+    return value
+}
+
+async function setStorage<Type>(key: string, val: Type) {
+    return AsyncStorage.setItem(key, JSON.stringify(val))
+}
+
+const toSeconds:{[id:string]:number} = {
+    "none":0,
+    "hourly":60*60,
+    "daily":60*60*24,
+    "weekly":60*60*24*7,
+    "monthly":60*60*24*30,
+}
+
+type FrequencyKeys = 'incremental'|'differential'|'full'
+
+async function backgroundBackupCheck(){
+    console.log("BACKGROUND BACKUP CHECK")
+    const fh = new FileHandler()
+    const BL = new BackupLogic()
+    const freq = await getStorage("freq", {incremental:'none',differential:'none',full:'none'})
+    let keys = Object.keys(freq) as FrequencyKeys[]
+    keys = keys.filter((v)=>freq[v]!='none')
+    console.log(freq)
+    for(const path of (await FileSystem.statDir(Dirs.DocumentDir)).map((v)=>v.path)){
+        for(const type of keys){
+            const latest = await fh.findLatestFile(`${path}/${type}`)
+            if(!latest) continue
+            let d = Util.basename(latest)
+            d = d.substring(1,d.length-4)
+            console.log(d, path, type)
+            console.log(new Date(Date.parse(d) + toSeconds[freq[type]]*1000).toLocaleString())
+        }
+    }
+}
+
+
+export {getPathList, validImageExtensions, compareStats, backgroundBackupCheck, getStorage }
