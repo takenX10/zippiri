@@ -51,7 +51,7 @@ export default function Settings() {
     const [full, setFull] = useState('none' as FrequencyValueEnum)
     const [differential, setDifferential] = useState('none' as FrequencyValueEnum)
     const [incremental, setIncremental] = useState('none' as FrequencyValueEnum)
-    const [compression, setCompression] = useState(null as CompressionEnum|null)
+    const [compression, setCompression] = useState('zip' as CompressionEnum)
     const [phonedata, setPhonedata] = useState(false);
     const [address, setAddress] = useState("");
     const [signature, setSignature] = useState("");
@@ -202,6 +202,7 @@ export default function Settings() {
                 label="compression algorithm"
                 setCurrentPath={(v:CompressionEnum) => setCompression(v)}
             />
+            <View style={{height:100}}></View>
             <View style={{ margin: 10 }}>
                 <Button
                     title="Test server"

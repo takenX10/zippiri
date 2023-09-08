@@ -81,7 +81,7 @@ export default class ServerInteractor {
         }
     }
 
-    async upload(content_base64:string, filename:string) {
+    async upload(content_base64:string, filename:string, path:string) {
         try{
             const res = await fetch(`${this.server_url}/upload/${this.name}/${this.type}/${this.date}`, {
                 "method": "POST",
@@ -89,7 +89,7 @@ export default class ServerInteractor {
                     "Authorization": `Basic ${this.cookie}`,
                     "Content-Type": "application/json"
                 },
-                "body": JSON.stringify({ filename: filename, file: content_base64 })
+                "body": JSON.stringify({ filename: filename, file: content_base64, path: path})
             })
             return res.ok
         }catch(err){

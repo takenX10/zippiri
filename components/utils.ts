@@ -125,4 +125,10 @@ Starting backup ${name} ${type} ${currentDate>deadline}
 }
 
 
-export {getPathList, validImageExtensions, compareStats, backgroundBackupCheck, getStorage }
+export {
+    getPathList,
+    validImageExtensions,
+    compareStats,
+    backgroundBackupCheck,
+    getStorage,
+}

@@ -99,10 +99,14 @@ def upload(backup_name, backup_type, date):
         upload_backup_dir = f"{BASEDIR}/{backup_name}/{backup_type}/{date}"
         file_base64 : str = request.json.get("file")
         filename : str = request.json.get("filename")
-        if file_base64 == None or filename == None or file_base64=="" or filename == "":
+        path : str = request.json.get("path")
+        if path == None or file_base64 == None or filename == None or file_base64=="" or filename == "":
             return make_response("WRONG PARAMETERS", 400)
         decoded = base64.b64decode(file_base64)
-        with open(f"{upload_backup_dir}/{filename}", 'wb') as f:
+        splitted_path = path.split('/')
+        if(len(splitted_path)>1):
+            os.makedirs(splitted_path[:-1])
+        with open(f"{upload_backup_dir}/{path}", 'wb') as f:
             f.write(decoded)
         return make_response("",200)
     except Exception as e:
