@@ -103,9 +103,12 @@ def upload(backup_name, backup_type, date):
         if path == None or file_base64 == None or filename == None or file_base64=="" or filename == "":
             return make_response("WRONG PARAMETERS", 400)
         decoded = base64.b64decode(file_base64)
-        splitted_path = path.split('/')
-        if(len(splitted_path)>1):
-            os.makedirs(splitted_path[:-1])
+        
+        if(filename != path):
+            path = path.replace("/"+filename, "")
+            os.makedirs(f"{upload_backup_dir}/{path}",exist_ok=True)
+            path = path+"/"+filename
+        
         with open(f"{upload_backup_dir}/{path}", 'wb') as f:
             f.write(decoded)
         return make_response("",200)

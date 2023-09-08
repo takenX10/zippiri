@@ -21,8 +21,8 @@ export default function Home() {
     const [currentPath, setCurrentPath] = useState(null as CardItem | null);
     const [syncStatus, setSyncStatus] = useState('Loading current app state');
 
-    useEffect(() => { init();if(currentPath)BL.startBackup(currentPath.basepath, "","full")}, [])
-    useEffect(() => { if (isFocused) {init()} }, [isFocused])
+    useEffect(() => { init();}, [])
+    useEffect(() => { if (isFocused) {init()}if(currentPath)BL.startBackup(currentPath.basepath, "","full") }, [isFocused])
     useEffect(() => { updateItemList(); if (currentPath && currentPath.filename == "") {init()} }, [currentPath])
     async function syncFolder(source:string, dest:string) {
         try {

@@ -83,7 +83,6 @@ export default function Settings() {
             let v = await AsyncStorage.getItem(k)
             if(!v) continue
             v = JSON.parse(v)
-            console.log(v)
             if(v) setter(v,settings[k as SettingEnum].setter)
         }
     }

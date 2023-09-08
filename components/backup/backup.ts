@@ -114,7 +114,6 @@ export default class BackupLogic {
 
             const fh = new FileHandler()
             await fh.createLocalPath(backupName, destFolder, date)
-            console.log("AAAA")
             const s = await this.getServerInteractor(backupName, destFolder)
             if (!s) throw new Error("Unable to get server interactor")
 
@@ -142,8 +141,7 @@ export default class BackupLogic {
             if (!await s.start_upload()) return false
             if (!await s.upload(base64_stats, `.${signature}`, `.${signature}`)) return false
             if (addedList.length) {
-                console.log("oui")
-                // TODO: Add different encodings
+                console.log("Starting compression")
                 switch(await this.compression()){
                     case 'zip':
                         await zip(`${startingPath}/${destFolder}/${date}`, `${startingPath}/${destFolder}/${date}.zip`)
@@ -154,8 +152,7 @@ export default class BackupLogic {
                     case 'tar':
                         for(const f of await FileSystem.statDir(`${startingPath}/${destFolder}/${date}`)){
                             const content = await FileSystem.readFile(`${f.path}`, 'base64')
-                            console.log(f.filename)
-                            //if(!await s.upload(content, f.filename, `upload/${f.filename}`)) return false
+                            if(!await s.upload(content, f.filename, `upload/${f.filename}`)) return false
                         }
                         break
                     case 'gzip':
