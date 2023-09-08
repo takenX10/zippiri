@@ -3,7 +3,6 @@ import { View, Text, ToastAndroid, ScrollView, Button, Alert } from 'react-nativ
 import { FileSystem } from 'react-native-file-access';
 import Modal from "react-native-modal";
 import NetInfo from "@react-native-community/netinfo";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import DropdownComponent from '../components/DropdownComponent.native';
 import ItemCardList from '../components/ItemCardList.native';
 import { CardItem, Status, backgroundBackupCheck, getPathList, getStorage } from '../components/utils';
@@ -22,8 +21,8 @@ export default function Home() {
     const [currentPath, setCurrentPath] = useState(null as CardItem | null);
     const [syncStatus, setSyncStatus] = useState('Loading current app state');
 
-    useEffect(() => { init(); backgroundBackupCheck() }, [])
-    useEffect(() => { if (isFocused) init() }, [isFocused])
+    useEffect(() => { init();}, [])
+    useEffect(() => { if (isFocused) {backgroundBackupCheck();init()} }, [isFocused])
     useEffect(() => { updateItemList(); if (currentPath && currentPath.filename == "") init() }, [currentPath])
     async function syncFolder(source:string, dest:string) {
         try {
@@ -50,7 +49,6 @@ export default function Home() {
         if (!currentPath) throw new Error("Folder not selected")
         if (!await checkServer()) throw new Error("The server is not connected")
         const status = await BL.getSyncStatus(currentPath.basepath)
-        console.log(status)
         return status.differential || status.full || status.incremental
     }
 
@@ -167,6 +165,7 @@ export default function Home() {
             </Modal>
             <DropdownComponent
                 data={pathList.map(p => { return { label: decodeURIComponent(p.split("tree/")[1]), value: p } })}
+                defaultValue={""}
                 setCurrentPath={(p: string) => {
                     setCurrentPath({ depth: 0, basepath: p, currentpath: p, filename: "", type: "" })
                 }}

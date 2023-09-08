@@ -70,10 +70,6 @@ async function getStorage<Type>(key: string, defval: Type): Promise<Type> {
     return value
 }
 
-async function setStorage<Type>(key: string, val: Type) {
-    return AsyncStorage.setItem(key, JSON.stringify(val))
-}
-
 const toSeconds:{[id:string]:number} = {
     "none":0,
     "hourly":60*60,
@@ -84,22 +80,46 @@ const toSeconds:{[id:string]:number} = {
 
 type FrequencyKeys = 'incremental'|'differential'|'full'
 
+export type FrequencyValueEnum = 'none'|'hourly'|'daily'|'weekly'|'monthly'
+
+const sourceFromDest={
+    incremental:'incremental',
+    differential:'full',
+    full:''
+}
+
 async function backgroundBackupCheck(){
     console.log("BACKGROUND BACKUP CHECK")
     const fh = new FileHandler()
     const BL = new BackupLogic()
-    const freq = await getStorage("freq", {incremental:'none',differential:'none',full:'none'})
-    let keys = Object.keys(freq) as FrequencyKeys[]
-    keys = keys.filter((v)=>freq[v]!='none')
-    console.log(freq)
-    for(const path of (await FileSystem.statDir(Dirs.DocumentDir)).map((v)=>v.path)){
-        for(const type of keys){
-            const latest = await fh.findLatestFile(`${path}/${type}`)
-            if(!latest) continue
-            let d = Util.basename(latest)
-            d = d.substring(1,d.length-4)
-            console.log(d, path, type)
-            console.log(new Date(Date.parse(d) + toSeconds[freq[type]]*1000).toLocaleString())
+    let keys = {} as {[id:string]:number}
+    for(const freq of ['differential','incremental','full']){
+        const storageFreq = await getStorage(freq, 'none')
+        if(storageFreq !='none') keys[freq] = toSeconds[storageFreq]
+    }
+    const folderList = await getStorage("folderList", [] as string[])
+    const currentDate = new Date()
+    for(const path of folderList){
+        const name = `${Dirs.DocumentDir}/${BL.generateBackupName(path)}`
+        //if(await FileSystem.exists(name)) await FileSystem.unlink(name)
+        //continue
+        for(const type of Object.keys(keys)){
+            const latest = await fh.findLatestFile(`${name}/${type}`)
+            if(!latest){
+                await BL.startBackup(path, sourceFromDest[type as FrequencyKeys],type)
+                continue
+            }
+            let sd = Util.basename(latest)
+            sd = sd.substring(1,sd.length-4)
+            const startDate = new Date(Date.parse(sd+'000Z'))
+            const deadline = new Date(startDate.getTime() + keys[type]*1000)
+            if(currentDate.getTime()>deadline.getTime()){
+                console.log(`
+Starting backup ${name} ${type} ${currentDate>deadline}
+(start: ${startDate.toISOString()} - deadline: ${deadline.toISOString()})
+                `)
+                await BL.startBackup(path, sourceFromDest[type as FrequencyKeys],type)
+            }
         }
     }
 }

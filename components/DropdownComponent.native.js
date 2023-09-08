@@ -3,8 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-const DropdownComponent = ({data, setCurrentPath, label, icon}) => {
-    const [value, setValue] = useState(null);
+const DropdownComponent = ({data, setCurrentPath, label, icon, defaultValue}) => {
+    const [value, setValue] = useState(defaultValue);
     const [isFocus, setIsFocus] = useState(false);
 
     const renderLabel = () => {

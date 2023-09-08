@@ -10,7 +10,7 @@ export default class ServerInteractor {
     name:string;
     type:string;
     cookie:string;
-    constructor(url:string, signature:string, username:string, password:string, date:string, name:string, type:string) {
+    constructor(url:string, signature:string, username:string, password:string, date:string, name:string, mytype:string) {
         this.server_url = `${url}/${signature}`
         this.cookie =""
         this.url = url
@@ -19,7 +19,7 @@ export default class ServerInteractor {
         this.signature = signature
         this.date = date
         this.name = name
-        this.type = type
+        this.type = mytype;
         this.login()
     }
     async checkServer (){

@@ -93,6 +93,7 @@ export default class FileHandler {
         let max = 0
         let maxpath = "";
         for (let f of ls) {
+            
             if (f.type != "directory" && f.lastModified > max) {
                 max = f.lastModified
                 maxpath = f.path
