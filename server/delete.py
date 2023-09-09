@@ -1,5 +1,4 @@
-import os, tarfile, json, shutil
-import zipfile
+import os, shutil
 
 BASEDIR: str = "sync"
 SIGNATURE: str = "123948759"
