@@ -103,4 +103,19 @@ export default class ServerInteractor {
             return false;
         }
     }
+
+    async getStats(){
+        try{
+            const res = await fetch(`${this.server_url}/stats/${this.name}/${this.type}`, {
+                headers: {
+                    "Authorization": `Basic ${this.cookie}`
+                }
+            })
+            if(!res.ok) return null
+            return await res.json();
+        }catch(err){
+            console.log(err)
+            return null;
+        }
+    }
 }

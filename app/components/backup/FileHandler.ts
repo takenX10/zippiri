@@ -21,11 +21,10 @@ export default class FileHandler {
         const cachableList: string[] = []
         for (const base of await FileSystem.statDir(Dirs.DocumentDir)) {
             for (const type of ["incremental", "full", "differential"]) {
-                if (await FileSystem.exists(`${base.path}/${type}`)) {
+                if (await FileSystem.exists(`${base.path}/${type}`) && await FileSystem.isDir(`${base.path}/${type}`)) {
                     const ls = await FileSystem.statDir(`${base.path}/${type}`)
-                    const latest = (await this.findLatestFile(`${base.path}/${type}`)) || ""
                     for (let f of ls) {
-                        if (f.path != latest) cachableList.push(f.path)
+                        cachableList.push(f.path)
                     }
                 }
             }

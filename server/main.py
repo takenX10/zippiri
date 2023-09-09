@@ -2,7 +2,7 @@ import os, secrets, shutil, logging, base64, json
 import datetime
 from functools import wraps
 import tarfile
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, jsonify
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -19,6 +19,24 @@ authorized_tokens = {}
 checkdate = lambda before: datetime.datetime.now() - before < datetime.timedelta(hours=24)
 
 valid_token = lambda t: t != None and t in authorized_tokens.keys()
+
+
+def is_dir(path: str):
+    return os.path.exists(path) and os.path.isdir(path)
+
+
+def is_file(path: str):
+    return os.path.exists(path) and os.path.isfile(path)
+
+def check_finish(path: str) -> bool:
+    if (
+        not is_dir(path)
+        or not is_file(f"{path}/.{SIGNATURE}")
+        or is_file(f"{path}/{SIGNATURE}")
+        or len(os.listdir(path))<2
+    ):
+        return False
+    return True
 
 def make_tarfile(output_filename, source_dir, taropen):
     with tarfile.open(output_filename, taropen) as tar:
@@ -133,15 +151,27 @@ def upload(backup_name, backup_type, date):
         logging.error(e)
     return make_response("ERROR", 400)
 
-@app.route(f"/{SIGNATURE}/status/<backup_name>/<backup_type>/<date>", methods = ['GET'])
+def get_latest_date(path:str) -> str|None:
+    print(path)
+    if(not os.path.exists(path) or not os.path.isdir(path)):
+        return None
+    max = None
+    for f in os.listdir(path):
+        if is_dir(f"{path}/{f}") and check_finish(f"{path}/{f}") and (max ==None or max < f):
+           max = f
+    return max
+
+@app.route(f"/{SIGNATURE}/stats/<backup_name>/<backup_type>", methods = ['GET'])
 @check_token()
-def status(backup_name, backup_type, date):
+def stats(backup_name, backup_type):
     try:
-        upload_backup_dir = f"{BASEDIR}/{backup_name}/{backup_type}/{date}"
-        l = os.listdir(upload_backup_dir)
-        if SIGNATURE in l:
-            return make_response("NOT ENDED", 400)
-        return make_response("",200)
+        basepath = f"{BASEDIR}/{backup_name}/{backup_type if backup_type != 'differential' else 'full'}"
+        latest = get_latest_date(basepath)
+        if(latest == None):
+            return make_response("No old backup of this type", 400)
+        with open(f"{basepath}/{latest}/.{SIGNATURE}", "r") as f:
+            j = json.load(f)
+            return jsonify(j)
     except Exception as e:
         logging.error(e)
     return make_response("ERROR", 400)

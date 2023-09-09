@@ -22,13 +22,13 @@ export default function Home() {
     const [syncStatus, setSyncStatus] = useState('Loading current app state');
 
     useEffect(() => { init();}, [])
-    useEffect(() => { if (isFocused) {init()}if(currentPath){updateItemList()} }, [isFocused])
+    useEffect(() => { if(currentPath){updateItemList()};if (isFocused) {init()} }, [isFocused])
     useEffect(() => { updateItemList(); if (currentPath && currentPath.filename == "") {init()} }, [currentPath])
+    
     async function syncFolder(source:string, dest:string) {
         try {
             if (!currentPath) throw new Error("Select a folder")
             if (!await checkServer()) throw new Error("Server not connected")
-            if (await checkSync()) throw new Error("Server already in sync")
             if (!await BL.startBackup(currentPath.basepath, source, dest)) throw new Error("Something went wrong...")
             init()
         } catch (err) {

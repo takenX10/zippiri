@@ -74,27 +74,31 @@ export default class BackupLogic {
             const backupName = this.generateBackupName(path)
             if (!stats) throw new Error("Unable to generate stats of path")
             for (const type of ["full", "differential", "incremental"]) {
-                const latestFile = await fh.getLatestFile(`${Dirs.DocumentDir}/${backupName}/${type}`)
-                if (latestFile) {
-                    const parsed = JSON.parse(latestFile) as SavedStats
-                    if (fh.statsDelta(parsed.currentList, stats).length || fh.statsDelta(stats, parsed.currentList)) {
-                        switch (type) {
-                            case "full":
-                                status.full = true
-                                break;
-                            case "incremental":
-                                status.incremental = true;
-                                break;
-                            case "differential":
-                                status.differential = true;
-                                break;
-                        }
+                const srv = await this.getServerInteractor(backupName, type, "")
+                if(!srv) continue
+                const latestFile = await srv.getStats()
+                if(!latestFile) continue
+                const parsed = latestFile as SavedStats
+                console.log(parsed.currentList)
+                console.log()
+                if (!fh.statsDelta(parsed.currentList, stats).length || !fh.statsDelta(stats, parsed.currentList)) {
+                    switch (type) {
+                        case "full":
+                            status.full = true
+                            break;
+                        case "incremental":
+                            status.incremental = true;
+                            break;
+                        case "differential":
+                            status.differential = true;
+                            break;
                     }
                 }
             }
         } catch (err) {
             console.log(err)
         }
+        console.log(status)
         return status
 
     }
@@ -121,13 +125,14 @@ export default class BackupLogic {
             if (!s) throw new Error("Unable to get server interactor")
 
             const currentFiles = await fh.generate_stats(path)
-            const latestFile = sourceFolder == "" ? "" : await fh.getLatestFile(`${startingPath}/${sourceFolder}`)
+            const latestFile = await s.getStats()
             let addedList = [] as Stats[]
             let removedList = [] as Stats[]
             if (!latestFile) {
                 addedList = currentFiles
             } else {
-                const oldFilesList = JSON.parse(latestFile) as SavedStats
+                const oldFilesList = latestFile as SavedStats
+                console.log("Done")
                 addedList = fh.statsDelta(oldFilesList.currentList, currentFiles)
                 removedList = fh.statsDelta(currentFiles, oldFilesList.currentList)
             }
@@ -164,7 +169,7 @@ export default class BackupLogic {
             }
             console.log("End upload")
             if (!await s.end_upload()) return false
-            await FileSystem.unlink(`${startingPath}/${destFolder}/${date}`)
+            await FileSystem.unlink(`${startingPath}/${destFolder}/`)
             await FileSystem.writeFile(`${startingPath}/${destFolder}/.${date}.txt`, JSON.stringify(stats))
             return true
         } catch (e) {

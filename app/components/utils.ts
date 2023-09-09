@@ -6,10 +6,10 @@ import BackupLogic from "./backup/backup";
 
 const validImageExtensions = ["jpg", "jpeg", "png"]
 
-async function getPathList(setter:Dispatch<SetStateAction<string[]>>) {
+async function getPathList(setter: Dispatch<SetStateAction<string[]>>) {
     try {
         const fl = await AsyncStorage.getItem("folderList")
-        if(!fl){
+        if (!fl) {
             setter([])
             return
         }
@@ -32,7 +32,7 @@ export interface Stats {
     filename: string;
     lastModified: number;
     size: number;
-    foldertree:string;
+    foldertree: string;
 }
 
 export interface AddedFileStat {
@@ -64,8 +64,8 @@ export interface CardItem {
 }
 
 //true -> they are equal, false otherwise
-function compareStats(a:Stats,b:Stats):boolean{
-    return a.path==b.path && a.value==b.value
+function compareStats(a: Stats, b: Stats): boolean {
+    return a.path == b.path && a.value == b.value
 }
 
 
@@ -76,56 +76,57 @@ async function getStorage<Type>(key: string, defval: Type): Promise<Type> {
     return value
 }
 
-const toSeconds:{[id:string]:number} = {
-    "none":0,
-    "hourly":60*60,
-    "daily":60*60*24,
-    "weekly":60*60*24*7,
-    "monthly":60*60*24*30,
+const toSeconds: { [id: string]: number } = {
+    "none": 0,
+    "hourly": 60 * 60,
+    "daily": 60 * 60 * 24,
+    "weekly": 60 * 60 * 24 * 7,
+    "monthly": 60 * 60 * 24 * 30,
 }
 
-type FrequencyKeys = 'incremental'|'differential'|'full'
+type FrequencyKeys = 'incremental' | 'differential' | 'full'
 
-export type FrequencyValueEnum = 'none'|'hourly'|'daily'|'weekly'|'monthly'
+export type FrequencyValueEnum = 'none' | 'hourly' | 'daily' | 'weekly' | 'monthly'
 
-const sourceFromDest={
-    incremental:'incremental',
-    differential:'full',
-    full:''
+const sourceFromDest = {
+    incremental: 'incremental',
+    differential: 'full',
+    full: ''
 }
 
-async function backgroundBackupCheck(){
+async function backgroundBackupCheck() {
     console.log("BACKGROUND BACKUP CHECK")
     const fh = new FileHandler()
     const BL = new BackupLogic()
-    let keys = {} as {[id:string]:number}
-    for(const freq of ['differential','incremental','full']){
+    let keys = {} as { [id: string]: number }
+    for (const freq of ['differential', 'incremental', 'full']) {
         const storageFreq = await getStorage(freq, 'none')
-        if(storageFreq !='none') keys[freq] = toSeconds[storageFreq]
+        if (storageFreq != 'none') keys[freq] = toSeconds[storageFreq]
     }
     const folderList = await getStorage("folderList", [] as string[])
     const currentDate = new Date()
-    for(const path of folderList){
-        const name = `${Dirs.DocumentDir}/${BL.generateBackupName(path)}`
+    for (const path of folderList) {
+        const name = BL.generateBackupName(path)
+        const pathwithname = `${Dirs.DocumentDir}/${name}`
         //if(await FileSystem.exists(name)) await FileSystem.unlink(name)
         //continue
-        for(const type of Object.keys(keys)){
-            const latest = await fh.findLatestFile(`${name}/${type}`)
-            if(!latest){
-                await BL.startBackup(path, sourceFromDest[type as FrequencyKeys],type)
-                continue
-            }
-            let sd = Util.basename(latest)
-            sd = sd.substring(1,sd.length-4)
-            const startDate = new Date(Date.parse(sd+'000Z'))
-            const deadline = new Date(startDate.getTime() + keys[type]*1000)
-            if(currentDate.getTime()>deadline.getTime()){
+        for (const type of Object.keys(keys)) {
+            const srv = await BL.getServerInteractor(name, type, "")
+            if (!srv) continue
+            const stats = await srv.getStats()
+            if (stats) {
+                const latest = stats.date as string
+                let sd = Util.basename(latest)
+                sd = sd.substring(1, sd.length - 4)
+                const startDate = new Date(Date.parse(sd + '000Z'))
+                const deadline = new Date(startDate.getTime() + keys[type] * 1000)
+                if (currentDate.getTime() <= deadline.getTime()) continue
                 console.log(`
-Starting backup ${name} ${type} ${currentDate>deadline}
+Starting backup ${name} ${type} ${currentDate > deadline}
 (start: ${startDate.toISOString()} - deadline: ${deadline.toISOString()})
                 `)
-                await BL.startBackup(path, sourceFromDest[type as FrequencyKeys],type)
             }
+            await BL.startBackup(path, sourceFromDest[type as FrequencyKeys], type)
         }
     }
 }
