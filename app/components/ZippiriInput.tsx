@@ -1,10 +1,16 @@
 import React from 'react';
 import { View, Text, TextInput } from 'react-native';
 
-export default function ZippiriInput({item, value, updateText, wifi}) {
+interface InputProps {
+    item: string;
+    value: string;
+    updateText: React.Dispatch<React.SetStateAction<string>>;
+    wifi:boolean;
+}
+export default function ZippiriInput({item, value, updateText, wifi}: InputProps) {
     return (
         <View style={{ margin: 10 }}>
-            <Text>{`${item[0].toUpperCase()}${item.substr(1, item.length - 1)}`}</Text>
+            <Text>{`${item[0].toUpperCase()}${item.substring(1, item.length - 1)}`}</Text>
             <TextInput
                 style={{
                     backgroundColor: "white",

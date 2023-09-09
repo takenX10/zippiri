@@ -3,7 +3,14 @@ import { View, Text } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 
 
-export default function ZippiriCheckbox({value, onValueChange, text, disabled}){
+interface CheckBoxProps {
+    text:string;
+    value:boolean;
+    onValueChange:React.Dispatch<React.SetStateAction<boolean>>;
+    disabled:boolean;
+}
+
+export default function ZippiriCheckbox({value, onValueChange, text, disabled}:CheckBoxProps){
     return (
         <View style={{ margin: 10, flexDirection: 'row' }}>
             <CheckBox

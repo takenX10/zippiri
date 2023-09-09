@@ -1,7 +1,7 @@
 import React from 'react';
 import {Text} from 'react-native';
 
-export default function ZippiriHeader({title}){
+export default function ZippiriHeader({title}:{title:string}){
     return (
         <Text style={{
             padding: 10,
