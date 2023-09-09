@@ -52,7 +52,7 @@ To install zippiri server you just need to:
       I suggest generating your signature with the following command: `python3 -c 'import secrets;print(secrets.token_hex(32))'`
 3. Execute your docker environment in your server 
     ```sh
-    sudo docker build -t zippiri-server
+    sudo docker build . -t zippiri-server
     sudo docker run zippiri-server
     ```
 Now you should be good to go, remember to make your server reachable by your phone (forward ports)

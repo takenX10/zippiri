@@ -10,7 +10,7 @@ interface InputProps {
 export default function ZippiriInput({item, value, updateText, wifi}: InputProps) {
     return (
         <View style={{ margin: 10 }}>
-            <Text>{`${item[0].toUpperCase()}${item.substring(1, item.length - 1)}`}</Text>
+            <Text>{`${item[0].toUpperCase()}${item.substring(1, item.length )}`}</Text>
             <TextInput
                 style={{
                     backgroundColor: "white",
