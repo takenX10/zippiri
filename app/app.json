@@ -1,4 +1,11 @@
 {
   "name": "zippiri3",
-  "displayName": "zippiri3"
+  "displayName": "zippiri3",
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "897a84d5-f314-48cd-bdde-1e998ea488b9"
+      }
+    }
+  }
 }

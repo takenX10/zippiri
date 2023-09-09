@@ -68,7 +68,6 @@ export default class BackupLogic {
             incremental: false,
             full: false
         }
-        return status
         try {
             const fh = new FileHandler()
             const stats = await fh.generate_stats(path)
