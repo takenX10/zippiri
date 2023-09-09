@@ -138,13 +138,12 @@ export default function Settings() {
                             val = differential; setter = setDifferential;
                             break
                     }
+                    if(!val) return (<></>) // this never happens
                     return (
                         <DropdownComponent
                             key={item} 
                             icon="clock-o"
-                            defaultValue={
-                                val
-                            }
+                            defaultValue={val}
                             data={frequencyList}
                             label={`${item} frequency`}
                             setCurrentPath={(v:string) => {setter(v)}}

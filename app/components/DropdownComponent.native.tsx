@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 interface DropdownProps {
     data:{label:string;value:string}[];
-    setCurrentPath:React.Dispatch<React.SetStateAction<string>>;
+    setCurrentPath:(v:any)=>void;
     label: string;
     icon: string;
     defaultValue:string;
