@@ -9,6 +9,7 @@ import DocumentPicker from 'react-native-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FileSystem } from 'react-native-file-access';
 import { FrequencyValueEnum } from '../components/utils';
+import BackupLogic from '../components/backup/backup';
 
 const settingsStyle = StyleSheet.create({
     folders: {
@@ -207,6 +208,14 @@ export default function Settings() {
                     title="Test server"
                     color="#841584"
                     accessibilityLabel="Sync the current folder"
+                    onPress={async()=>{
+                        console.log("Ciao")
+                        const BL = new BackupLogic();
+                        const srv = await BL.getServerInteractor()
+                        if(!srv)return ToastAndroid.show("Something went wrong", ToastAndroid.SHORT)
+                        const msg = await srv.checkServer() ? "The server works" : "Unable to connect to server"
+                        ToastAndroid.show(msg, ToastAndroid.SHORT)
+                    }}
                 />
             </View>
             <View style={{ margin: 10 }}>

@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Dispatch, SetStateAction } from "react";
 import FileHandler from "./backup/FileHandler";
-import { Dirs, FileSystem, Util } from "react-native-file-access";
+import { Dirs, FileStat, FileSystem, Util } from "react-native-file-access";
 import BackupLogic from "./backup/backup";
 
 const validImageExtensions = ["jpg", "jpeg", "png"]
@@ -32,6 +32,12 @@ export interface Stats {
     filename: string;
     lastModified: number;
     size: number;
+    foldertree:string;
+}
+
+export interface AddedFileStat {
+    baseStat: FileStat;
+    foldertree: string;
 }
 
 export interface StatsDictionary {

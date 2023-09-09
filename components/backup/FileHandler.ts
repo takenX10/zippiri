@@ -1,17 +1,17 @@
-import { FileSystem, Dirs, FileStat } from "react-native-file-access"
-import { Stats, StatsDictionary, compareStats } from "../utils";
+import { FileSystem, Dirs } from "react-native-file-access"
+import { AddedFileStat, Stats, compareStats } from "../utils";
 
 export default class FileHandler {
     constructor() { }
 
-    async folderTree(path: string): Promise<FileStat[]> {
-        if (!await FileSystem.exists(path) || !await FileSystem.isDir(path)) return [] as FileStat[]
-        let filesList: FileStat[] = [];
+    async folderTree(path: string, basedir:string): Promise<AddedFileStat[]> {
+        if (!await FileSystem.exists(path) || !await FileSystem.isDir(path)) return [] as AddedFileStat[]
+        let filesList: AddedFileStat[] = [];
         for (const f of await FileSystem.statDir(path)) {
             if (f.type == 'directory') {
-                filesList = [...filesList, ...(await this.folderTree(f.path))]
+                filesList = [...filesList, ...(await this.folderTree(f.path, basedir+f.filename+"/"))]
             } else {
-                filesList.push(f)
+                filesList.push({baseStat:f, foldertree:basedir})
             }
         }
         return filesList
@@ -134,17 +134,18 @@ export default class FileHandler {
         }
     }
     async generate_stats(path: string) {
-        const ls = await this.folderTree(path)
+        const ls = await this.folderTree(path, "")
         let stats: Stats[] = []
         for (let i in ls) {
             stats.push({
-                value: await FileSystem.hash(ls[i].path, 'SHA-256'),
+                value: await FileSystem.hash(ls[i].baseStat.path, 'SHA-256'),
                 keyName: i.toString(),
-                type: ls[i].type,
-                path: ls[i].path,
-                filename: ls[i].filename,
-                lastModified: ls[i].lastModified,
-                size: ls[i].size
+                type: ls[i].baseStat.type,
+                path: ls[i].baseStat.path,
+                filename: ls[i].baseStat.filename,
+                lastModified: ls[i].baseStat.lastModified,
+                size: ls[i].baseStat.size,
+                foldertree: ls[i].foldertree
             })
         }
         return stats

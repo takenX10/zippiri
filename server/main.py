@@ -1,6 +1,7 @@
-import re, os, secrets, shutil, logging, base64
+import os, secrets, shutil, logging, base64, json
 import datetime
 from functools import wraps
+import tarfile
 from flask import Flask, request, make_response
 
 logging.getLogger().setLevel(logging.INFO)
@@ -18,6 +19,11 @@ authorized_tokens = {}
 checkdate = lambda before: datetime.datetime.now() - before < datetime.timedelta(hours=24)
 
 valid_token = lambda t: t != None and t in authorized_tokens.keys()
+
+def make_tarfile(output_filename, source_dir, taropen):
+    with tarfile.open(output_filename, taropen) as tar:
+        tar.add(source_dir, arcname=os.path.basename(source_dir))
+
 
 def clean_tokens():
     for k in authorized_tokens.keys():
@@ -86,8 +92,19 @@ def end_upload(backup_name, backup_type, date):
     end_backup_dir = f"{BASEDIR}/{backup_name}/{backup_type}/{date}"
     try:
         l = os.listdir(end_backup_dir)
-        if SIGNATURE in l:
-            os.remove(f"{end_backup_dir}/{SIGNATURE}")
+        if(f".{SIGNATURE}" not in l):
+            return make_response("Missing stats", 400)
+        os.makedirs(f"{end_backup_dir}/upload", exist_ok=True)
+        with open(f"{end_backup_dir}/.{SIGNATURE}", "r") as f:
+            parsed_stats = json.load(f)
+            if("compression" not in parsed_stats):
+                return make_response("Missing compression in stats", 400)
+            if(parsed_stats["compression"] != "zip"):
+                if(parsed_stats["compression"] == "tar"):
+                    make_tarfile(f"{end_backup_dir}/{date}.tar",f"{end_backup_dir}/upload", "x")
+                elif(parsed_stats["compression"] == "gzip"):
+                    make_tarfile(f"{end_backup_dir}/{date}.tar.gz", f"{end_backup_dir}/upload", "x:gz")
+        os.remove(f"{end_backup_dir}/{SIGNATURE}")
     except Exception as e:
         logging.error(e)
     return ""

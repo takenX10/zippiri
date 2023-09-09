@@ -25,17 +25,17 @@ def move_backup(backup_name, origin, destination):
         difference_json = json.load(f)
     print(difference_json)
     for d in difference_json["deleted"]:
-        os.remove(f"{starting_path}/{origin}/{d}")
+        shutil.rmtree(f"{starting_path}/{origin}/{d}")
     remove_empty_folders(f"{starting_path}/{origin}")
     # Merge the two folders
     shutil.copytree(f"{starting_path}/{destination}", f"{starting_path}/{origin}")
     # Clean up the destination
-    os.removedirs(f"{starting_path}/{destination}")
+    shutil.rmtree(f"{starting_path}/{destination}")
 
     # Copy origin into destination
     shutil.copytree(f"{starting_path}/{origin}", f"{starting_path}/{destination}")
     # remove origin
-    os.removedirs(f"{starting_path}/{origin}")
+    shutil.rmtree(f"{starting_path}/{origin}")
 
         
 

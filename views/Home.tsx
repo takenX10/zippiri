@@ -22,7 +22,7 @@ export default function Home() {
     const [syncStatus, setSyncStatus] = useState('Loading current app state');
 
     useEffect(() => { init();}, [])
-    useEffect(() => { if (isFocused) {init()}if(currentPath)BL.startBackup(currentPath.basepath, "","full") }, [isFocused])
+    useEffect(() => { if (isFocused) {init()}if(currentPath){updateItemList()} }, [isFocused])
     useEffect(() => { updateItemList(); if (currentPath && currentPath.filename == "") {init()} }, [currentPath])
     async function syncFolder(source:string, dest:string) {
         try {

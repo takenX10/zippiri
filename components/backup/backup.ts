@@ -11,12 +11,13 @@ interface SavedStats {
     added: Stats[];
     removed: Stats[];
     currentList: Stats[];
+    compression: string;
 }
 
 export default class BackupLogic {
     constructor() { }
 
-    async getServerInteractor(name: string = "", type: string = "") {
+    async getServerInteractor(name: string = "", type: string = "", date: string = "") {
         const addr = await this.address();
         const sig = await this.signature();
         const usr = await this.username();
@@ -27,7 +28,7 @@ export default class BackupLogic {
             sig,
             usr,
             psw,
-            this.generateBackupDate(),
+            date,
             name,
             type
         )
@@ -57,7 +58,7 @@ export default class BackupLogic {
     async password() {
         return await storageGetter("password")
     }
-    async compression(){
+    async compression() {
         return await storageGetter("compression")
     }
 
@@ -67,6 +68,7 @@ export default class BackupLogic {
             incremental: false,
             full: false
         }
+        return status
         try {
             const fh = new FileHandler()
             const stats = await fh.generate_stats(path)
@@ -103,18 +105,20 @@ export default class BackupLogic {
     async startBackup(path: string, sourceFolder: string, destFolder: string) {
         try {
             console.log("startbackup")
-            //console.log(await FileSystem.statDir(`${Dirs.DocumentDir}`))
-            await FileSystem.unlink(`${Dirs.DocumentDir}/${sourceFolder}`)
-            const date = this.generateBackupDate()
             const backupName = this.generateBackupName(path)
+            //if (await FileSystem.exists(`${Dirs.DocumentDir}/${backupName}`))
+            //    await FileSystem.unlink(`${Dirs.DocumentDir}/${backupName}`)
+            const date = this.generateBackupDate()
             const signature = await this.signature()
             if (!signature) throw new Error('Unable to get signature')
+            const compression = await this.compression()
+            if (!compression) throw new Error('Unable to get compression type')
 
             const startingPath = `${Dirs.DocumentDir}/${backupName}`
 
             const fh = new FileHandler()
             await fh.createLocalPath(backupName, destFolder, date)
-            const s = await this.getServerInteractor(backupName, destFolder)
+            const s = await this.getServerInteractor(backupName, destFolder, date)
             if (!s) throw new Error("Unable to get server interactor")
 
             const currentFiles = await fh.generate_stats(path)
@@ -132,33 +136,34 @@ export default class BackupLogic {
                 date: date,
                 added: addedList,
                 removed: removedList,
-                currentList: currentFiles
+                currentList: currentFiles,
+                compression: compression
             }
             const base64_stats = encode(JSON.stringify(stats))
             for (const f of addedList) {
                 await FileSystem.cp(f.path, `${startingPath}/${destFolder}/${date}/${f.keyName}`)
             }
+            console.log("Start upload")
             if (!await s.start_upload()) return false
             if (!await s.upload(base64_stats, `.${signature}`, `.${signature}`)) return false
             if (addedList.length) {
                 console.log("Starting compression")
-                switch(await this.compression()){
+                switch (compression) {
                     case 'zip':
                         await zip(`${startingPath}/${destFolder}/${date}`, `${startingPath}/${destFolder}/${date}.zip`)
                         const f = await FileSystem.readFile(`${startingPath}/${destFolder}/${date}.zip`, 'base64')
                         if (!await s.upload(f, `${date}.zip`, `${date}.zip`)) return false
                         await FileSystem.unlink(`${startingPath}/${destFolder}/${date}.zip`)
                         break
-                    case 'tar':
-                        for(const f of await FileSystem.statDir(`${startingPath}/${destFolder}/${date}`)){
+                    default:
+                        for (const f of await FileSystem.statDir(`${startingPath}/${destFolder}/${date}`)) {
                             const content = await FileSystem.readFile(`${f.path}`, 'base64')
-                            if(!await s.upload(content, f.filename, `upload/${f.filename}`)) return false
+                            if (!await s.upload(content, f.filename, `upload/${f.filename}`)) return false
                         }
                         break
-                    case 'gzip':
-                }       
+                }
             }
-
+            console.log("End upload")
             if (!await s.end_upload()) return false
             await FileSystem.unlink(`${startingPath}/${destFolder}/${date}`)
             await FileSystem.writeFile(`${startingPath}/${destFolder}/.${date}.txt`, JSON.stringify(stats))
