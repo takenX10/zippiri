@@ -1,29 +1,36 @@
-export const toSeconds: { [id: string]: number } = {
-    "none": 0,
-    "hourly": 60 * 60,
-    "daily": 60 * 60 * 24,
-    "weekly": 60 * 60 * 24 * 7,
-    "monthly": 60 * 60 * 24 * 30,
+export const toSeconds:{[key in FrequencyValue]?:number} = {
+    none:0,
+    hourly:60*60,
+    daily:60*60*24,
+    weekly:60*60*24*7,
+    monthly:60*60*24*30,
+
 }
 
-export const sourceFromDest = {
-    incremental: 'incremental',
-    differential: 'full',
-    full: ''
+export enum Compression {
+    zip='zip',
+    tar='tar',
+    gzip='gzip'
+}
+
+export enum FrequencyKey {
+    incremental = 'incremental',
+    differential = 'differential',
+    full = 'full'
+}
+
+export enum FrequencyValue {
+    none='none',
+    hourly='hourly',
+    daily='daily',
+    weekly='weekly',
+    monthly='monthly'
 }
 
 export const validImageExtensions = ["jpg", "jpeg", "png"]
 
-export const frequencyList = [ 
-    { label: 'none', value: 'none' },
-    { label: 'hourly', value: 'hourly' },
-    { label: 'daily', value: 'daily' },
-    { label: 'weekly', value: 'weekly' },
-    { label: 'monthly', value: 'monthly' }
-];
-
-export const compressionList = [
-    { label: 'zip', value: 'zip' },
-    { label: 'tar', value: 'tar' },
-    { label: 'gzip', value: 'gzip' },
+export const byteRanges = [
+    { size: 1024 * 1024 * 1024, tag: "GB" },
+    { size: 1024 * 1024, tag: "MB" },
+    { size: 1024, tag: "KB" },
 ]

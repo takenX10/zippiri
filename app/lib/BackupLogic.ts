@@ -4,7 +4,8 @@ import { encode } from "base-64";
 import ServerInteractor from "./ServerInteractor";
 import FileHandler from "./FileHandler";
 import { getStorage } from "./utils";
-import { BackupStatus, SavedStats, Stats } from "./types";
+import { BackupStatus, SavedStats, ZippiriFileStat } from "./types";
+import { FrequencyKey } from "./constants";
 
 export default class BackupLogic {
     constructor() { }
@@ -75,24 +76,14 @@ export default class BackupLogic {
             const stats = await fh.generate_stats(path)
             const backupName = this.generateBackupName(path)
             if (!stats) throw new Error("Unable to generate stats of path")
-            for (const type of ["full", "differential", "incremental"]) {
-                const srv = await this.getServerInteractor(backupName, type, "")
+            for (const [_, type] of Object.entries(FrequencyKey)) {
+                const srv = await this.getServerInteractor(backupName, type)
                 if(!srv) continue
                 const latestFile = await srv.getStats()
                 if(!latestFile) continue
                 const parsed = latestFile as SavedStats
                 if (!fh.statsDelta(parsed.currentList, stats).length || !fh.statsDelta(stats, parsed.currentList)) {
-                    switch (type) {
-                        case "full":
-                            status.full = true
-                            break;
-                        case "incremental":
-                            status.incremental = true;
-                            break;
-                        case "differential":
-                            status.differential = true;
-                            break;
-                    }
+                    status[type] = true
                 }
             }
         } catch (err) {
@@ -101,15 +92,11 @@ export default class BackupLogic {
         return status
 
     }
-
-    // sourceFolder -> folder where you search latest stats
     // destFolder -> folder where you handle file creation & create your stats
-    async startBackup(path: string, sourceFolder: string, destFolder: string) {
+    async startBackup(path: string, backupType: FrequencyKey) {
         try {
-            console.log("startbackup")
+            console.log("Start backup")
             const backupName = this.generateBackupName(path)
-            //if (await FileSystem.exists(`${Dirs.DocumentDir}/${backupName}`))
-            //    await FileSystem.unlink(`${Dirs.DocumentDir}/${backupName}`)
             const date = this.generateBackupDate()
             const signature = await this.signature()
             if (!signature) throw new Error('Unable to get signature')
@@ -119,21 +106,19 @@ export default class BackupLogic {
             const startingPath = `${Dirs.DocumentDir}/${backupName}`
 
             const fh = new FileHandler()
-            await fh.createLocalPath(backupName, destFolder, date)
-            const s = await this.getServerInteractor(backupName, destFolder, date)
+            await fh.createLocalPath(backupName, backupType, date)
+            const s = await this.getServerInteractor(backupName, backupType, date)
             if (!s) throw new Error("Unable to get server interactor")
 
             const currentFiles = await fh.generate_stats(path)
             const latestFile = await s.getStats()
-            let addedList = [] as Stats[]
-            let removedList = [] as Stats[]
+            let addedList = [] as ZippiriFileStat[]
+            let removedList = [] as ZippiriFileStat[]
             if (!latestFile) {
                 addedList = currentFiles
             } else {
-                const oldFilesList = latestFile as SavedStats
-                console.log("Done")
-                addedList = fh.statsDelta(oldFilesList.currentList, currentFiles)
-                removedList = fh.statsDelta(currentFiles, oldFilesList.currentList)
+                addedList = fh.statsDelta(latestFile.currentList, currentFiles)
+                removedList = fh.statsDelta(currentFiles, latestFile.currentList)
             }
             const stats: SavedStats = {
                 date: date,
@@ -144,22 +129,20 @@ export default class BackupLogic {
             }
             const base64_stats = encode(JSON.stringify(stats))
             for (const f of addedList) {
-                await FileSystem.cp(f.path, `${startingPath}/${destFolder}/${date}/${f.keyName}`)
+                await FileSystem.cp(f.path, `${startingPath}/${backupType}/${date}/${f.keyName}`)
             }
-            console.log("Start upload")
             if (!await s.start_upload()) return false
             if (!await s.upload(base64_stats, `.${signature}`, `.${signature}`)) return false
             if (addedList.length) {
-                console.log("Starting compression")
                 switch (compression) {
                     case 'zip':
-                        await zip(`${startingPath}/${destFolder}/${date}`, `${startingPath}/${destFolder}/${date}.zip`)
-                        const f = await FileSystem.readFile(`${startingPath}/${destFolder}/${date}.zip`, 'base64')
+                        await zip(`${startingPath}/${backupType}/${date}`, `${startingPath}/${backupType}/${date}.zip`)
+                        const f = await FileSystem.readFile(`${startingPath}/${backupType}/${date}.zip`, 'base64')
                         if (!await s.upload(f, `${date}.zip`, `${date}.zip`)) return false
-                        await FileSystem.unlink(`${startingPath}/${destFolder}/${date}.zip`)
+                        await FileSystem.unlink(`${startingPath}/${backupType}/${date}.zip`)
                         break
                     default:
-                        for (const f of await FileSystem.statDir(`${startingPath}/${destFolder}/${date}`)) {
+                        for (const f of await FileSystem.statDir(`${startingPath}/${backupType}/${date}`)) {
                             const content = await FileSystem.readFile(`${f.path}`, 'base64')
                             if (!await s.upload(content, f.filename, `upload/${f.filename}`)) return false
                         }
@@ -168,7 +151,7 @@ export default class BackupLogic {
             }
             console.log("End upload")
             if (!await s.end_upload()) return false
-            await FileSystem.unlink(`${startingPath}/${destFolder}/`)
+            await FileSystem.unlink(`${startingPath}/${backupType}`)
             return true
         } catch (e) {
             console.log(e)

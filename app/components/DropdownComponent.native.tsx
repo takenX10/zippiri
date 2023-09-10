@@ -11,11 +11,10 @@ interface DropdownProps {
     defaultValue:string;
 }
 const DropdownComponent = ({data, setCurrentPath, label, icon, defaultValue}:DropdownProps) => {
-    const [value, setValue] = useState(defaultValue);
     const [isFocus, setIsFocus] = useState(false);
 
     const renderLabel = () => {
-        if (value || isFocus) {
+        if (defaultValue || isFocus) {
             return (
                 <Text style={[styles.label, isFocus && { color: 'blue' }]}>
                     {label}
@@ -41,11 +40,10 @@ const DropdownComponent = ({data, setCurrentPath, label, icon, defaultValue}:Dro
                 valueField="value"
                 placeholder={!isFocus ? "Select " + label : ''}
                 searchPlaceholder="Search..."
-                value={value}
+                value={defaultValue}
                 onFocus={() => setIsFocus(true)}
                 onBlur={() => setIsFocus(false)}
                 onChange={item => {
-                    setValue(item.value);
                     setIsFocus(false);
                     setCurrentPath(item.value);
                 }}

@@ -1,5 +1,5 @@
 # Zippiri - Android Folder Backup App
-
+![Zippiri icon](/app/icons/android/res/mipmap-xxxhdpi/ic_launcher.png)
 ## Table of Contents
 - [Introduction](#introduction)
 - [Features](#features)

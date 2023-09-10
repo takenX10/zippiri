@@ -6,10 +6,11 @@ import NetInfo from "@react-native-community/netinfo";
 import DropdownComponent from '../components/DropdownComponent.native';
 import ItemCardList from '../components/ItemCardList.native';
 import { backgroundBackupCheck, getPathList, getStorage } from '../lib/utils';
-import BackupLogic from '../lib/backup';
+import BackupLogic from '../lib/BackupLogic';
 import FileHandler from '../lib/FileHandler';
 import { useIsFocused } from '@react-navigation/native';
-import { CardItem, Status } from '../lib/types';
+import { CardItem, InternetStatus } from '../lib/types';
+import { FrequencyKey } from '../lib/constants';
 
 export default function Home() {
     const BL = new BackupLogic()
@@ -22,15 +23,15 @@ export default function Home() {
     const [currentPath, setCurrentPath] = useState(null as CardItem | null);
     const [syncStatus, setSyncStatus] = useState('Loading current app state');
 
-    useEffect(() => { init(); backgroundBackupCheck()}, [])
-    useEffect(() => { if(currentPath){updateItemList()};if (isFocused) {init()} }, [isFocused])
-    useEffect(() => { updateItemList(); if (currentPath && currentPath.filename == "") {init()} }, [currentPath])
-    
-    async function syncFolder(source:string, dest:string) {
+    useEffect(() => { init(); backgroundBackupCheck() }, [])
+    useEffect(() => { if (currentPath) { updateItemList() }; if (isFocused) { init() } }, [isFocused])
+    useEffect(() => { updateItemList(); if (currentPath && currentPath.filename == "") { init() } }, [currentPath])
+
+    async function syncFolder(dest: FrequencyKey) {
         try {
             if (!currentPath) throw new Error("Select a folder")
             if (!await checkServer()) throw new Error("Server not connected")
-            if (!await BL.startBackup(currentPath.basepath, source, dest)) throw new Error("Something went wrong...")
+            if (!await BL.startBackup(currentPath.basepath, dest)) throw new Error("Something went wrong...")
             init()
         } catch (err) {
             console.log(err)
@@ -59,7 +60,7 @@ export default function Home() {
         setCacheLabel(`Clear cache (${await fh.getCacheSize()})`)
     }
 
-    async function checkInternet(): Promise<Status> {
+    async function checkInternet(): Promise<InternetStatus> {
         const netstate = await NetInfo.fetch()
         const wifi = await getStorage("wifi", false);
         const wifissid = await getStorage("wifissid", "");
@@ -75,6 +76,7 @@ export default function Home() {
         }
         return { success: true, message: "" }
     }
+
     async function init() {
         try {
             setCacheLabel(`Clear cache (${await fh.getCacheSize()})`)
@@ -131,33 +133,28 @@ export default function Home() {
                 animationIn="fadeInRight"
                 animationOut="fadeOutRight"
             >
-                <View style={{ flex: 1, alignItems: 'center', justifyContent:'center' }}>
-                    <View style={{ width:'70%', padding:20 }}>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{ width: '70%', padding: 20 }}>
                         {
-                            [
-                                { source: "", dest: "full", label: "full" },
-                                { source: "full", dest: "differential", label: "differential" },
-                                { source: "incremental", dest: "incremental", label: "incremental" },
-
-                            ].map((v) =>
-                                <View style={{ margin: 25 }} key={v.label}>
+                            Object.entries(FrequencyKey).map(([_, v]) =>
+                                <View style={{ margin: 25 }} key={v}>
                                     <Button
-                                        title={v.label}
+                                        title={v}
                                         onPress={() => {
                                             setModalVisible(false)
-                                            syncFolder(v.source, v.dest)
+                                            syncFolder(v)
                                         }}
                                     />
                                 </View>
                             )
                         }
-                        <View style={{margin:25}}>
-                            <Button 
-                                title="Close" 
-                                color="#FF0000" 
-                                onPress={() => { 
+                        <View style={{ margin: 25 }}>
+                            <Button
+                                title="Close"
+                                color="#FF0000"
+                                onPress={() => {
                                     setModalVisible(false);
-                                }} 
+                                }}
                             />
                         </View>
 

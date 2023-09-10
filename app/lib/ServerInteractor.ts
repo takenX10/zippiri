@@ -1,3 +1,4 @@
+import { SavedStats } from "./types";
 
 
 export default class ServerInteractor {
@@ -104,7 +105,7 @@ export default class ServerInteractor {
         }
     }
 
-    async getStats(){
+    async getStats():Promise<SavedStats|null>{
         try{
             const res = await fetch(`${this.server_url}/stats/${this.name}/${this.type}`, {
                 headers: {
@@ -112,7 +113,7 @@ export default class ServerInteractor {
                 }
             })
             if(!res.ok) return null
-            return await res.json();
+            return await res.json() as SavedStats;
         }catch(err){
             console.log(err)
             return null;

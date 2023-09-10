@@ -1,12 +1,13 @@
-import { FileStat } from "react-native-file-access";
 
-export type FrequencyKeys = 'incremental' | 'differential' | 'full'
 
-export type FrequencyValueEnum = 'none' | 'hourly' | 'daily' | 'weekly' | 'monthly'
+export type SettingKey = 
+"folderList"|"full"|"compression"|"folderList"|
+"phonedata"|"address"|"signature"|"username"|
+"password"|"wifissid"|"wifi"|'incremental'|'differential';
 
-export interface Stats {
+export interface ZippiriFileStat {
     path: string;
-    type: string;
+    type: 'directory'|'file';
     value: string;
     keyName: string;
     filename: string;
@@ -15,13 +16,12 @@ export interface Stats {
     foldertree: string;
 }
 
-export interface AddedFileStat {
-    baseStat: FileStat;
-    foldertree: string;
-}
-
-export interface StatsDictionary {
-    [id: string]: Stats
+export interface SavedStats {
+    date: string;
+    added: ZippiriFileStat[];
+    removed: ZippiriFileStat[];
+    currentList: ZippiriFileStat[];
+    compression: string;
 }
 
 export interface BackupStatus {
@@ -30,7 +30,7 @@ export interface BackupStatus {
     incremental: boolean;
 }
 
-export interface Status {
+export interface InternetStatus {
     success: boolean;
     message: string;
 }
@@ -41,19 +41,4 @@ export interface CardItem {
     filename: string;
     type: string;
     depth: number;
-}
-
-export type CompressionEnum =  'zip'|'tar'|'gzip'
-
-export type SettingEnum = 
-"folderList"|"full"|"compression"|"folderList"|
-"phonedata"|"address"|"signature"|"username"|
-"password"|"wifissid"|"wifi"|'incremental'|'differential';
-
-export interface SavedStats {
-    date: string;
-    added: Stats[];
-    removed: Stats[];
-    currentList: Stats[];
-    compression: string;
 }
