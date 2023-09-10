@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ToastAndroid, ScrollView, Button, Alert } from 'react-native';
+import { View, Text, ToastAndroid, ScrollView, Button, PermissionsAndroid } from 'react-native';
 import { FileSystem } from 'react-native-file-access';
 import Modal from "react-native-modal";
+import WifiManager from "react-native-wifi-reborn";
 import NetInfo from "@react-native-community/netinfo";
 import DropdownComponent from '../components/DropdownComponent.native';
 import ItemCardList from '../components/ItemCardList.native';
@@ -13,18 +14,21 @@ import { CardItem, InternetStatus } from '../lib/types';
 import { FrequencyKey } from '../lib/constants';
 
 export default function Home() {
+    let firstLabelChange = false;
+    let secondLabelChange = false;
+    const defaultBackupLabel = "Backup"
+    const loadingBackupLabel = "Backing up..."
     const BL = new BackupLogic()
     const fh = new FileHandler()
     const isFocused = useIsFocused()
     const [isModalVisible, setModalVisible] = useState(false);
-    const [backupLabel, setBackupLabel] = useState("Backup")
+    const [backupLabel, setBackupLabel] = useState(defaultBackupLabel)
     const [itemList, setItemList] = useState([] as CardItem[]);
     const [pathList, setPathList] = useState([] as string[]);
     const [cacheLabel, setCacheLabel] = useState("Clear cache (0B)")
     const [currentPath, setCurrentPath] = useState(null as CardItem | null);
     const [syncStatus, setSyncStatus] = useState('Loading current app state');
-    let firstLabelChange = false;
-    let secondLabelChange = false;
+
 
     useEffect(() => { init(); backgroundBackupCheck() }, [])
     useEffect(() => { if (currentPath) { updateItemList() }; if (isFocused) { init() } }, [isFocused])
@@ -34,25 +38,25 @@ export default function Home() {
         try {
             if (!currentPath) throw new Error("Select a folder")
             if (!await checkServer()) throw new Error("Server not connected")
-            setBackupLabel((_)=>{
-                if(secondLabelChange){
+            setBackupLabel((_) => {
+                if (secondLabelChange) {
                     secondLabelChange = false;
-                }else{
+                } else {
                     firstLabelChange = true;
-                    return "Backing up..."
+                    return loadingBackupLabel
                 }
-                return "Backup"
+                return defaultBackupLabel
             })
             if (!await BL.startBackup(currentPath.basepath, dest)) throw new Error("Something went wrong...")
-            setBackupLabel((_)=>{
-                if(firstLabelChange){
+            await init()
+            setBackupLabel((_) => {
+                if (firstLabelChange) {
                     firstLabelChange = false;
-                }else{
+                } else {
                     secondLabelChange = true;
                 }
-                return "Backup"
+                return defaultBackupLabel
             })
-            init()
         } catch (err) {
             console.log(err)
             if (err instanceof Error) {
@@ -81,16 +85,34 @@ export default function Home() {
     }
 
     async function checkInternet(): Promise<InternetStatus> {
+        const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+                title: 'Location permission is required for WiFi connections',
+                message:
+                    'This app needs location permission as this is required  ' +
+                    'to scan for wifi networks.',
+                buttonNegative: 'DENY',
+                buttonPositive: 'ALLOW',
+            },
+        );
+        if (!granted) return { success: false, message: "Network permissions not granted" }
         const netstate = await NetInfo.fetch()
         const wifi = await getStorage("wifi", false);
         const wifissid = await getStorage("wifissid", "");
         const phonedata = await getStorage("phonedata", false);
         if (phonedata) return { success: true, message: "" }
+        if (netstate.type != "wifi" || !netstate.isConnected || !netstate.isWifiEnabled) {
+            return { success: false, message: "Connect to wifi before backing up" }
+        }
         if (wifi) {
-            if (netstate.type != "wifi" || !netstate.isConnected || !netstate.isWifiEnabled) {
-                return { success: false, message: "Connect to wifi before backing up" }
+            let ssid = "";
+            try {
+                ssid = await WifiManager.getCurrentWifiSSID()
+            } catch (err) {
+                return { success: false, message: "Enable position in settings" }
             }
-            if (netstate.details.ssid != wifissid) {
+            if (ssid != wifissid) {
                 return { success: false, message: "Connect to the correct wifi" }
             }
         }
@@ -145,9 +167,8 @@ export default function Home() {
     }
 
     return (
-        <ScrollView style={{
-            margin: 20,
-        }}>
+
+        <View style={{height:'100%'}}>
             <Modal
                 isVisible={isModalVisible}
                 animationIn="fadeInRight"
@@ -181,45 +202,51 @@ export default function Home() {
                     </View>
                 </View>
             </Modal>
-            <DropdownComponent
-                data={pathList.map(p => { return { label: decodeURIComponent(p.split("tree/")[1]), value: p } })}
-                defaultValue={""}
-                setCurrentPath={(p: string) => {
-                    setCurrentPath({ depth: 0, basepath: p, currentpath: p, filename: "", type: "" })
-                }}
-                label="folder"
-                icon="folder"
-            />
-            <View style={{ flex: 1, justifyContent: 'space-evenly', alignItems: 'stretch', flexDirection: 'row', marginTop: 10 }}>
-                <View style={{ flex: 1, marginRight: 10 }}>
-                    <Button
-                        title={backupLabel}
-                        disabled={backupLabel!="Backup"}
-                        color="#841584"
-                        accessibilityLabel="Backup the current folder"
-                        onPress={() => { setModalVisible(true) }}
-                    />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <Button
-                        title="Check status"
-                        color="#841584"
-                        accessibilityLabel="Check the current folder status"
-                        onPress={init}
-                    />
-                </View>
-            </View>
-            <View style={{ flex: 1, marginTop: 5 }}>
-                <Button
-                    title={cacheLabel}
-                    color="#841584"
-                    accessibilityLabel={cacheLabel}
-                    onPress={clearCache}
+            <View style={{margin:15, height:'100%'}}>
+                <DropdownComponent
+                    data={pathList.map(p => { return { label: decodeURIComponent(p.split("tree/")[1]), value: p } })}
+                    defaultValue={currentPath && currentPath.currentpath ? currentPath.currentpath : ""}
+                    setCurrentPath={(p: string) => {
+                        setCurrentPath({ depth: 0, basepath: p, currentpath: p, filename: "", type: "" })
+                    }}
+                    label="folder"
+                    icon="folder"
                 />
+                <View style={{
+                    marginTop: 10,
+                    flexDirection:'row',
+                }}>
+                    <View style={{ flex:1, marginRight:5}}>
+                        <Button
+                            title={backupLabel}
+                            disabled={backupLabel != defaultBackupLabel}
+                            color="#841584"
+                            accessibilityLabel="Backup the current folder"
+                            onPress={() => { setModalVisible(true) }}
+                        />
+                    </View>
+                    <View style={{flex:1, marginLeft:5}}>
+                        <Button
+                            title="Check status"
+                            color="#841584"
+                            accessibilityLabel="Check the current folder status"
+                            onPress={init}
+                        />
+                    </View>
+                </View>
+                <View style={{marginTop: 5 }}>
+                    <Button
+                        title={cacheLabel}
+                        color="#841584"
+                        accessibilityLabel={cacheLabel}
+                        onPress={clearCache}
+                    />
+                </View>
+                <Text style={{ marginTop: 10, fontSize: 20, textAlign: 'center' }}>{syncStatus}</Text>
+                <View style={{flex:1, marginBottom:20}}>
+                    <ItemCardList items={itemList} currentPath={currentPath} setCurrentPath={setCurrentPath} />
+                </View>
             </View>
-            <Text style={{ marginTop: 10, fontSize: 20, textAlign: 'center' }}>{syncStatus}</Text>
-            <ItemCardList items={itemList} currentPath={currentPath} setCurrentPath={setCurrentPath} />
-
-        </ScrollView>
+        </View>
     )
 }

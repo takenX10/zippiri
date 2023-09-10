@@ -114,7 +114,7 @@ export default class BackupLogic {
             const latestFile = await s.getStats()
             let addedList = [] as ZippiriFileStat[]
             let removedList = [] as ZippiriFileStat[]
-            if (!latestFile) {
+            if (!latestFile || backupType == 'full') {
                 addedList = currentFiles
             } else {
                 addedList = fh.statsDelta(latestFile.currentList, currentFiles)

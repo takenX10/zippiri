@@ -25,7 +25,6 @@ export default class ServerInteractor {
     }
     async checkServer (){
         try {
-            console.log("Check server")
             const controller = new AbortController()
             setTimeout(() => controller.abort(), 2000)
             const res = await fetch(this.server_url, { signal: controller.signal });
