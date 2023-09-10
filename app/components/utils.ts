@@ -95,8 +95,7 @@ const sourceFromDest = {
 }
 
 async function backgroundBackupCheck() {
-    console.log("BACKGROUND BACKUP CHECK")
-    const fh = new FileHandler()
+    console.log("#### Start background backup check")
     const BL = new BackupLogic()
     let keys = {} as { [id: string]: number }
     for (const freq of ['differential', 'incremental', 'full']) {
@@ -106,26 +105,23 @@ async function backgroundBackupCheck() {
     const folderList = await getStorage("folderList", [] as string[])
     const currentDate = new Date()
     for (const path of folderList) {
+        console.log(`- Checking folder ${path}`)
         const name = BL.generateBackupName(path)
-        const pathwithname = `${Dirs.DocumentDir}/${name}`
-        //if(await FileSystem.exists(name)) await FileSystem.unlink(name)
-        //continue
         for (const type of Object.keys(keys)) {
+            console.log(`\t- Checking backup type ${type}`)
             const srv = await BL.getServerInteractor(name, type, "")
             if (!srv) continue
             const stats = await srv.getStats()
             if (stats) {
-                const latest = stats.date as string
-                let sd = Util.basename(latest)
-                sd = sd.substring(1, sd.length - 4)
+                let sd = stats.date as string
                 const startDate = new Date(Date.parse(sd + '000Z'))
                 const deadline = new Date(startDate.getTime() + keys[type] * 1000)
+                console.log(`\t\tLast backup: ${startDate.toISOString()}`)
+                console.log(`\t\tDeadline: ${deadline.toISOString()}`)
+                console.log(`\t\tNow: ${currentDate.toISOString()}`)
                 if (currentDate.getTime() <= deadline.getTime()) continue
-                console.log(`
-Starting backup ${name} ${type} ${currentDate > deadline}
-(start: ${startDate.toISOString()} - deadline: ${deadline.toISOString()})
-                `)
             }
+            console.log(`\t* Starting background backup ${name} ${type}`)
             await BL.startBackup(path, sourceFromDest[type as FrequencyKeys], type)
         }
     }

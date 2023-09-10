@@ -5,7 +5,7 @@ import Modal from "react-native-modal";
 import NetInfo from "@react-native-community/netinfo";
 import DropdownComponent from '../components/DropdownComponent.native';
 import ItemCardList from '../components/ItemCardList.native';
-import { CardItem, Status, getPathList, getStorage } from '../components/utils';
+import { CardItem, Status, backgroundBackupCheck, getPathList, getStorage } from '../components/utils';
 import BackupLogic from '../components/backup/backup';
 import FileHandler from '../components/backup/FileHandler';
 import { useIsFocused } from '@react-navigation/native';
@@ -21,7 +21,7 @@ export default function Home() {
     const [currentPath, setCurrentPath] = useState(null as CardItem | null);
     const [syncStatus, setSyncStatus] = useState('Loading current app state');
 
-    useEffect(() => { init();}, [])
+    useEffect(() => { init(); backgroundBackupCheck()}, [])
     useEffect(() => { if(currentPath){updateItemList()};if (isFocused) {init()} }, [isFocused])
     useEffect(() => { updateItemList(); if (currentPath && currentPath.filename == "") {init()} }, [currentPath])
     

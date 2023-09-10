@@ -79,8 +79,6 @@ export default class BackupLogic {
                 const latestFile = await srv.getStats()
                 if(!latestFile) continue
                 const parsed = latestFile as SavedStats
-                console.log(parsed.currentList)
-                console.log()
                 if (!fh.statsDelta(parsed.currentList, stats).length || !fh.statsDelta(stats, parsed.currentList)) {
                     switch (type) {
                         case "full":
@@ -98,7 +96,6 @@ export default class BackupLogic {
         } catch (err) {
             console.log(err)
         }
-        console.log(status)
         return status
 
     }
@@ -170,7 +167,6 @@ export default class BackupLogic {
             console.log("End upload")
             if (!await s.end_upload()) return false
             await FileSystem.unlink(`${startingPath}/${destFolder}/`)
-            await FileSystem.writeFile(`${startingPath}/${destFolder}/.${date}.txt`, JSON.stringify(stats))
             return true
         } catch (e) {
             console.log(e)
