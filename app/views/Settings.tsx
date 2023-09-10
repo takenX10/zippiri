@@ -85,7 +85,6 @@ export default function Settings() {
     
     async function loadSettings() {
         for (const [k, v] of Object.entries(settings)) {
-            console.log(k, await getStorage(k, v.value))
             v.setter(await getStorage(k, v.value))
         }
     }
@@ -137,7 +136,7 @@ export default function Settings() {
                             <Text style={{ flex: 1 }}>{foldertext}</Text>
                             <Button
                                 title="X"
-                                color="red"
+                                color="black"
                                 accessibilityLabel="remove folder"
                                 onPress={() => {
                                     setFolderList((f) => {
@@ -180,7 +179,7 @@ export default function Settings() {
             <DropdownComponent
                 defaultValue={compression}
                 icon="file-zip-o"
-                data={Object.entries(compression).map(([_, v]) => {
+                data={Object.entries(Compression).map(([_, v]) => {
                     return { label: v, value: v }
                 })}
                 label="compression algorithm"

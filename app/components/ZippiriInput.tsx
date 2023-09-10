@@ -20,12 +20,14 @@ export default function ZippiriInput({item, value, updateText, wifi}: InputProps
                     borderColor: 'gray',
                     borderRadius: 5,
                     padding: 10,
+                    color:'black',
                 }}
                 value={value}
                 editable={item != "wifi SSID" || wifi}
                 secureTextEntry={item == "password"}
                 onChangeText={text =>updateText(text)}
                 placeholder={`Insert ${item}`}
+                placeholderTextColor="#000000"
             />
         </View>
     );

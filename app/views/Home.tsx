@@ -17,11 +17,14 @@ export default function Home() {
     const fh = new FileHandler()
     const isFocused = useIsFocused()
     const [isModalVisible, setModalVisible] = useState(false);
+    const [backupLabel, setBackupLabel] = useState("Backup")
     const [itemList, setItemList] = useState([] as CardItem[]);
     const [pathList, setPathList] = useState([] as string[]);
     const [cacheLabel, setCacheLabel] = useState("Clear cache (0B)")
     const [currentPath, setCurrentPath] = useState(null as CardItem | null);
     const [syncStatus, setSyncStatus] = useState('Loading current app state');
+    let firstLabelChange = false;
+    let secondLabelChange = false;
 
     useEffect(() => { init(); backgroundBackupCheck() }, [])
     useEffect(() => { if (currentPath) { updateItemList() }; if (isFocused) { init() } }, [isFocused])
@@ -31,7 +34,24 @@ export default function Home() {
         try {
             if (!currentPath) throw new Error("Select a folder")
             if (!await checkServer()) throw new Error("Server not connected")
+            setBackupLabel((_)=>{
+                if(secondLabelChange){
+                    secondLabelChange = false;
+                }else{
+                    firstLabelChange = true;
+                    return "Backing up..."
+                }
+                return "Backup"
+            })
             if (!await BL.startBackup(currentPath.basepath, dest)) throw new Error("Something went wrong...")
+            setBackupLabel((_)=>{
+                if(firstLabelChange){
+                    firstLabelChange = false;
+                }else{
+                    secondLabelChange = true;
+                }
+                return "Backup"
+            })
             init()
         } catch (err) {
             console.log(err)
@@ -173,7 +193,8 @@ export default function Home() {
             <View style={{ flex: 1, justifyContent: 'space-evenly', alignItems: 'stretch', flexDirection: 'row', marginTop: 10 }}>
                 <View style={{ flex: 1, marginRight: 10 }}>
                     <Button
-                        title="Backup"
+                        title={backupLabel}
+                        disabled={backupLabel!="Backup"}
                         color="#841584"
                         accessibilityLabel="Backup the current folder"
                         onPress={() => { setModalVisible(true) }}

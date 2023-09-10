@@ -67,12 +67,12 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: 'white',
         margin: 10,
-    },
-    dropdown: {
-        height: 70,
         borderColor: 'gray',
         borderWidth: 0.5,
         borderRadius: 8,
+    },
+    dropdown: {
+        height: 70,
         paddingHorizontal: 8,
     },
     Icon: {
@@ -92,6 +92,7 @@ const styles = StyleSheet.create({
     },
     selectedTextStyle: {
         fontSize: 20,
+        color:'black'
     },
     iconStyle: {
         width: 20,
@@ -100,5 +101,6 @@ const styles = StyleSheet.create({
     inputSearchStyle: {
         height: 40,
         fontSize: 16,
+        color:'black'
     },
 });
