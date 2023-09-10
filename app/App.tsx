@@ -5,7 +5,7 @@ import Settings from './views/Settings'
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { NavigationContainer } from '@react-navigation/native';
 import BackgroundFetch from "react-native-background-fetch";
-import { backgroundBackupCheck } from './components/utils';
+import { backgroundBackupCheck } from './lib/utils';
 
 const Drawer = createDrawerNavigator();
 

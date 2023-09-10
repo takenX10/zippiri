@@ -26,7 +26,7 @@ export default class ServerInteractor {
         try {
             console.log("Check server")
             const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 2000)
+            setTimeout(() => controller.abort(), 2000)
             const res = await fetch(this.server_url, { signal: controller.signal });
             if (!res.ok) {
                 return false
@@ -41,7 +41,7 @@ export default class ServerInteractor {
     async login() {
         try{
             const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 2000)
+            setTimeout(() => controller.abort(), 2000)
             const res = await fetch(`${this.server_url}/login`, {
                 signal: controller.signal,
                 method: "POST",

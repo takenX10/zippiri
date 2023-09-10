@@ -5,10 +5,11 @@ import Modal from "react-native-modal";
 import NetInfo from "@react-native-community/netinfo";
 import DropdownComponent from '../components/DropdownComponent.native';
 import ItemCardList from '../components/ItemCardList.native';
-import { CardItem, Status, backgroundBackupCheck, getPathList, getStorage } from '../components/utils';
-import BackupLogic from '../components/backup/backup';
-import FileHandler from '../components/backup/FileHandler';
+import { backgroundBackupCheck, getPathList, getStorage } from '../lib/utils';
+import BackupLogic from '../lib/backup';
+import FileHandler from '../lib/FileHandler';
 import { useIsFocused } from '@react-navigation/native';
+import { CardItem, Status } from '../lib/types';
 
 export default function Home() {
     const BL = new BackupLogic()

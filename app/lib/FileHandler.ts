@@ -1,5 +1,6 @@
 import { FileSystem, Dirs } from "react-native-file-access"
-import { AddedFileStat, Stats, compareStats } from "../utils";
+import { compareStats } from "./utils";
+import { AddedFileStat, Stats } from "./types";
 
 export default class FileHandler {
     constructor() { }

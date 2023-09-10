@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, View, Text } from 'react-native';
 import ItemCard from './ItemCard.native';
-import { CardItem } from './utils';
+import { CardItem } from '../lib/types';
 
 interface ItemCardListProps {
     items: CardItem[];

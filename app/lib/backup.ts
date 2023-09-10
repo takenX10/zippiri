@@ -2,17 +2,9 @@ import { FileSystem, Dirs, Util } from "react-native-file-access";
 import { zip } from 'react-native-zip-archive';
 import { encode } from "base-64";
 import ServerInteractor from "./ServerInteractor";
-import { storageGetter } from "./backupUtils";
 import FileHandler from "./FileHandler";
-import { BackupStatus, Stats, compareStats } from "../utils";
-
-interface SavedStats {
-    date: string;
-    added: Stats[];
-    removed: Stats[];
-    currentList: Stats[];
-    compression: string;
-}
+import { getStorage } from "./utils";
+import { BackupStatus, SavedStats, Stats } from "./types";
 
 export default class BackupLogic {
     constructor() { }
@@ -47,19 +39,29 @@ export default class BackupLogic {
     }
 
     async address() {
-        return await storageGetter("address")
+        const addr = await getStorage("address", "")
+        if(addr=="") return null
+        return addr
     }
     async signature() {
-        return await storageGetter("signature")
+        const sig = await getStorage("signature", "")
+        if(sig=="") return null
+        return sig
     }
     async username() {
-        return await storageGetter("username")
+        const usr = await getStorage("username", "")
+        if(usr=="") return null
+        return usr
     }
     async password() {
-        return await storageGetter("password")
+        const psw = await getStorage("password", "")
+        if(psw=="") return null
+        return psw
     }
     async compression() {
-        return await storageGetter("compression")
+        const comp = await getStorage("compression", "")
+        if(comp=="") return null
+        return comp
     }
 
     async getSyncStatus(path: string): Promise<BackupStatus> {

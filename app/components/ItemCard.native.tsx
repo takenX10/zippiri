@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Image, Text, TouchableOpacity } from 'react-native';
-import { CardItem, validImageExtensions } from './utils'
 import { FileSystem, Util } from 'react-native-file-access';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { CardItem } from '../lib/types';
+import { validImageExtensions } from '../lib/constants';
 
 interface ItemCardProp {
     item: CardItem;

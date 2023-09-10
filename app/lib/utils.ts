@@ -1,12 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Dispatch, SetStateAction } from "react";
-import FileHandler from "./backup/FileHandler";
-import { Dirs, FileStat, FileSystem, Util } from "react-native-file-access";
-import BackupLogic from "./backup/backup";
+import BackupLogic from "./backup";
+import { sourceFromDest, toSeconds } from "./constants";
+import { FrequencyKeys, Stats } from "./types";
 
-const validImageExtensions = ["jpg", "jpeg", "png"]
-
-async function getPathList(setter: Dispatch<SetStateAction<string[]>>) {
+export async function getPathList(setter: Dispatch<SetStateAction<string[]>>) {
     try {
         const fl = await AsyncStorage.getItem("folderList")
         if (!fl) {
@@ -24,77 +22,20 @@ async function getPathList(setter: Dispatch<SetStateAction<string[]>>) {
     setter([])
 }
 
-export interface Stats {
-    path: string;
-    type: string;
-    value: string;
-    keyName: string;
-    filename: string;
-    lastModified: number;
-    size: number;
-    foldertree: string;
-}
-
-export interface AddedFileStat {
-    baseStat: FileStat;
-    foldertree: string;
-}
-
-export interface StatsDictionary {
-    [id: string]: Stats
-}
-
-export interface BackupStatus {
-    full: boolean;
-    differential: boolean;
-    incremental: boolean;
-}
-
-export interface Status {
-    success: boolean;
-    message: string;
-}
-
-export interface CardItem {
-    basepath: string;
-    currentpath: string;
-    filename: string;
-    type: string;
-    depth: number;
-}
-
 //true -> they are equal, false otherwise
-function compareStats(a: Stats, b: Stats): boolean {
+export function compareStats(a: Stats, b: Stats): boolean {
     return a.path == b.path && a.value == b.value
 }
 
 
-async function getStorage<Type>(key: string, defval: Type): Promise<Type> {
+export async function getStorage<Type>(key: string, defval: Type): Promise<Type> {
     const storage = await AsyncStorage.getItem(key)
     let value = defval
     if (storage) value = JSON.parse(storage) as Type
     return value
 }
 
-const toSeconds: { [id: string]: number } = {
-    "none": 0,
-    "hourly": 60 * 60,
-    "daily": 60 * 60 * 24,
-    "weekly": 60 * 60 * 24 * 7,
-    "monthly": 60 * 60 * 24 * 30,
-}
-
-type FrequencyKeys = 'incremental' | 'differential' | 'full'
-
-export type FrequencyValueEnum = 'none' | 'hourly' | 'daily' | 'weekly' | 'monthly'
-
-const sourceFromDest = {
-    incremental: 'incremental',
-    differential: 'full',
-    full: ''
-}
-
-async function backgroundBackupCheck() {
+export async function backgroundBackupCheck() {
     console.log("#### Start background backup check")
     const BL = new BackupLogic()
     let keys = {} as { [id: string]: number }
@@ -125,13 +66,4 @@ async function backgroundBackupCheck() {
             await BL.startBackup(path, sourceFromDest[type as FrequencyKeys], type)
         }
     }
-}
-
-
-export {
-    getPathList,
-    validImageExtensions,
-    compareStats,
-    backgroundBackupCheck,
-    getStorage,
 }

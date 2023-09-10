@@ -8,8 +8,9 @@ import ZippiriCheckbox from '../components/ZippiriCheckbox';
 import DocumentPicker from 'react-native-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FileSystem } from 'react-native-file-access';
-import { FrequencyValueEnum } from '../components/utils';
-import BackupLogic from '../components/backup/backup';
+import BackupLogic from '../lib/backup';
+import { CompressionEnum, FrequencyValueEnum, SettingEnum } from '../lib/types';
+import { compressionList, frequencyList } from '../lib/constants';
 
 const settingsStyle = StyleSheet.create({
     folders: {
@@ -24,27 +25,6 @@ const settingsStyle = StyleSheet.create({
         margin: 10,
     }
 })
-
-const frequencyList = [ 
-    { label: 'none', value: 'none' },
-    { label: 'hourly', value: 'hourly' },
-    { label: 'daily', value: 'daily' },
-    { label: 'weekly', value: 'weekly' },
-    { label: 'monthly', value: 'monthly' }
-];
-
-const compressionList = [
-    { label: 'zip', value: 'zip' },
-    { label: 'tar', value: 'tar' },
-    { label: 'gzip', value: 'gzip' },
-]
-
-type CompressionEnum =  'zip'|'tar'|'gzip'
-
-type SettingEnum = 
-    "folderList"|"full"|"compression"|"folderList"|
-    "phonedata"|"address"|"signature"|"username"|
-    "password"|"wifissid"|"wifi"|'incremental'|'differential';
 
 export default function Settings() {
 
