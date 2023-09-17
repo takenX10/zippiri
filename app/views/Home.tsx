@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ToastAndroid, ScrollView, Button, PermissionsAndroid } from 'react-native';
+import { View, Text, ToastAndroid, Button, PermissionsAndroid } from 'react-native';
 import { FileSystem } from 'react-native-file-access';
 import Modal from "react-native-modal";
 import WifiManager from "react-native-wifi-reborn";

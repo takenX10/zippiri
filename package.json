@@ -1,5 +1,17 @@
 {
   "devDependencies": {
     "markdown-to-slides": "^1.0.5"
-  }
+  },
+  "dependencies": {
+    "puppeteer": "^21.2.1"
+  },
+  "name": "zippiri3",
+  "description": "![Zippiri icon](/home/taken/Documents/github/zippiri3/app/icons/android/play_store_512.png) ## Table of Contents - [Introduction](#introduction) - [Features](#features) - [Installation](#installation) - [Usage](#usage) - [Backup Types](#backup-types) - [Compression Options](#compression-options) - [Contributing](#contributing) - [License](#license)",
+  "version": "1.0.0",
+  "main": "test.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
 }

@@ -7,10 +7,9 @@ import { ScrollView } from 'react-native-gesture-handler';
 import ZippiriCheckbox from '../components/ZippiriCheckbox';
 import DocumentPicker from 'react-native-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FileSystem } from 'react-native-file-access';
 import BackupLogic from '../lib/BackupLogic';
 import { SettingKey } from '../lib/types';
-import { Compression, FrequencyKey, FrequencyValue } from '../lib/constants';
+import { Compression, FrequencyValue } from '../lib/constants';
 import { getStorage } from '../lib/utils';
 
 const settingsStyle = StyleSheet.create({

@@ -1,111 +1,152 @@
-import threading, time, os, logging,datetime, shutil, json
+import os, shutil
 
-SIGNATURE : str = "123948759"
-BASEDIR : str = "sync"
-DATE_DIFFERENCE : int = 15
-backup_name_list : list[str] = []
+BASEDIR: str = "sync"
+SIGNATURE: str = "123948759"
 
-logging.getLogger().setLevel(logging.INFO)
 
-# PARAM: f (str) -> the date to check
-# Return: True if f < current_date - DATE_DIFFERENCE else false
-check_date = lambda f: datetime.datetime.now() - datetime.timedelta(days=DATE_DIFFERENCE) > \
-                    datetime.datetime.fromisoformat(f)
+def is_dir(path: str):
+    return os.path.exists(path) and os.path.isdir(path)
 
-def remove_empty_folders(path):
-    folders = list(os.walk(path))[1:]
-    for folder in folders:
-        if not folder[2]:
-            os.rmdir(folder[0])
 
-def move_backup(backup_name, origin, destination):
-    starting_path = f"{BASEDIR}/{backup_name}/incremental"
-    difference_json : dict = {}
-    with open(f"{starting_path}/{destination}/.{SIGNATURE}", "r") as f:
-        difference_json = json.load(f)
-    print(difference_json)
-    for d in difference_json["deleted"]:
-        shutil.rmtree(f"{starting_path}/{origin}/{d}")
-    remove_empty_folders(f"{starting_path}/{origin}")
-    # Merge the two folders
-    shutil.copytree(f"{starting_path}/{destination}", f"{starting_path}/{origin}")
-    # Clean up the destination
-    shutil.rmtree(f"{starting_path}/{destination}")
+def is_file(path: str):
+    return os.path.exists(path) and os.path.isfile(path)
 
-    # Copy origin into destination
-    shutil.copytree(f"{starting_path}/{origin}", f"{starting_path}/{destination}")
-    # remove origin
-    shutil.rmtree(f"{starting_path}/{origin}")
+def remove_backup(path:str, printlog=True):
+    flag = False
+    if(is_dir(path)):
+        flag = True
+        shutil.rmtree(path)
+    elif(is_file(path)):
+        flag = True
+        os.remove(path)
+    if(printlog and flag):
+        print(f"Removing {path}")
+    if(not flag):
+        print(f"Unable to remove {path}")
 
-        
-
-# False -> no dependecies
-# True -> dependencies
-def check_dependencies(backup_name, date):
-    if backup_name not in os.listdir(BASEDIR):
+def check_finish(path: str) -> bool:
+    if (
+        not is_dir(path)
+        or not is_file(f"{path}/.{SIGNATURE}")
+        or is_file(f"{path}/{SIGNATURE}")
+        or len(os.listdir(path))<2
+    ):
         return False
-    if "differential" not in os.listdir(f"{BASEDIR}/{backup_name}"):
-        return True
-    for differential_date in os.listdir(f"{BASEDIR}/{backup_name}/differential"):
-        try:
-            with open(f"{BASEDIR}/{backup_name}/differential/{differential_date}/.{SIGNATURE}", "r") as f:
-                if date in f.readlines():
-                    return False
-        except Exception as e:
-            logger.error(e)
-        return True
+    return True
 
-def delete_full():
+def get_user_input(
+    thislist: list[str], initialtext: str, inputtext: str, errortext: str
+) -> int:
+    if len(thislist) == 0:
+        print(errortext)
+        return
+    thislist.sort()
     while True:
-        time.sleep(5)
-        try:
-            for backup_name in backup_name_list:
-                dates_list = os.listdir(f"{BASEDIR}/{backup_name}/full")
-                dates_list.sort()
-                for date in dates_list:
-                    if check_date(date) and check_dependencies(backup_name, date):
-                        logging.info(f"Removing backup: {backup_name}/full/{date}")
-                        shutil.rmtree(f"{BASEDIR}/{backup_name}/full/{date}")
-        except Exception as e:
-            logging.error(e)
-                    
+        print(initialtext + "\n")
+        for k, b in enumerate(thislist):
+            print(f"{k+1}- {b}")
+        print()
+        userinput = input(inputtext)
+        print()
+        userinput = int(userinput) - 1
+        if userinput >= 0 and userinput < len(thislist):
+            return thislist[userinput]
 
 
-def delete_differential():
-    while True:
-        time.sleep(5)
-        try:
-            for backup_name in backup_name_list:
-                dates_list = os.listdir(f"{BASEDIR}/{backup_name}/differential")
-                dates_list.sort()
-                for date in dates_list:
-                    if check_date(date):
-                        logging.info(f"Removing backup: {backup_name}/differential/{date}")
-                        shutil.rmtree(f"{BASEDIR}/{backup_name}/differential/{date}")
-        except Exception as e:
-            logging.error(e)
+def find_dependant_full(full_dir: str, differential_date: str) -> str | None:
+    if not is_dir(full_dir):
+        return None
+    ls = os.listdir(full_dir)
+    max = None
+    for f in ls:
+        if f < differential_date and (max == None or f > max):
+            max = f
+    return max
 
 
-def delete_incremental():
-    while True:
-        try:
-            for backup_name in backup_name_list:
-                dates_list = os.listdir(f"{BASEDIR}/{backup_name}/incremental")
-                dates_list.sort()
-                for k, date in enumerate(dates_list):
-                    if check_date(date) and k < len(dates_list) - 1:
-                        move_backup(backup_name, dates_list[k], dates_list[k+1])
-                        logging.info(f"Removing backup: {backup_name}/incremental/{date}")
-                        shutil.rmtree(f"{BASEDIR}/{backup_name}/incremental/{date}")
-        except Exception as e:
-            logging.error(e)
-        time.sleep(5)
+def get_dependents_differential(backup_name: str, backup_date: str) -> list[str]:
+    differential_dir = f"{BASEDIR}/{backup_name}/differential"
+    full_dir = f"{BASEDIR}/{backup_name}/full"
+    if not is_dir(differential_dir):
+        return []  # should never reach this point
+    ls = os.listdir(differential_dir)
+    retlist: list[str] = []
+    for f in ls:
+        full = find_dependant_full(full_dir, f)
+        if full == backup_date:
+            retlist.append(f)
+    return retlist
 
 
 def main():
-    global backup_name_list
-    backup_name_list = os.listdir(BASEDIR)
-    delete_incremental()
+    os.makedirs(BASEDIR, exist_ok=True)
+    options = [
+        "Clear all broken backups",
+        "delete a specific backup",
+    ]
+
+    selected = get_user_input(
+        options, "What do you want to do", "Insert option number:", ""
+    )
+
+    if selected == options[0]:
+        for name in os.listdir(BASEDIR):
+            for type in os.listdir(f"{BASEDIR}/{name}"):
+                if is_dir(f"{BASEDIR}/{name}/{type}"):
+                    for date in os.listdir(f"{BASEDIR}/{name}/{type}"):
+                        p = f"{BASEDIR}/{name}/{type}/{date}"
+                        if not check_finish(p):
+                            remove_backup(p)
+        print("Done!")
+    elif selected == options[1]:
+        name = get_user_input(
+            os.listdir(BASEDIR),
+            "Choose the backup folder you want to extract",
+            "Insert backup number: ",
+            "No backups available",
+        )
+        type = get_user_input(
+            os.listdir(f"{BASEDIR}/{name}"),
+            "Choose the backup type",
+            "Insert type number: ",
+            f"No backup types of {name} available",
+        )
+        date = get_user_input(
+            os.listdir(f"{BASEDIR}/{name}/{type}"),
+            "Choose the backup date",
+            "Insert date number: ",
+            f"No backup dates of {name} - {type} available",
+        )
+        if type == "differential":
+            remove_backup(f"{BASEDIR}/{name}/{type}/{date}")
+        elif type == "incremental":
+            answer = input(
+                "Every backup from that date until today will be removed, continue (y/n)?"
+            )
+            if answer.lower() == "y":
+                ls = os.listdir(f"{BASEDIR}/{name}/incremental")
+                ls.sort()
+                for f in ls:
+                    if f >= date:
+                        remove_backup(f"{BASEDIR}/{name}/incremental/{f}")
+            else:
+                print("Deletion aborted")
+        elif type == "full":
+            differential_list = get_dependents_differential(name, date)
+            answer = "y"
+            if len(differential_list) > 0:
+                print("By removing this backup you are going to remove also:")
+                for f in differential_list:
+                    print(f"- {name}/differential/{f}")
+                answer = input(
+                    "Every backup from that date until today will be removed, continue (y/n)?"
+                )
+            if answer.lower() == "y":
+                for f in differential_list:
+                    remove_backup(f"{BASEDIR}/{name}/differential/{f}")
+                remove_backup(f"{BASEDIR}/{name}/full/{date}")
+            else:
+                print("Deletion aborted")
 
 if __name__ == "__main__":
     main()
